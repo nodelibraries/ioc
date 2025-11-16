@@ -5,7 +5,7 @@ Advanced features in JavaScript - factory pattern, keyed services, multiple impl
 ## Code
 
 ```javascript
-const { ServiceCollection, ServiceProvider } = require('nodelibs-ioc');
+const { ServiceCollection, ServiceProvider } = require('@nodelibraries/ioc');
 
 // Define services
 class Logger {
@@ -69,8 +69,8 @@ services.addSingleton(ILoggerKeyedToken, FileLogger);
 services.addSingleton(ILoggerKeyedToken, ConsoleLogger);
 
 // 5. Keyed services
-services.addKeyedSingleton(ILoggerKeyedToken, 'file', FileLogger);
-services.addKeyedSingleton(ILoggerKeyedToken, 'console', ConsoleLogger);
+services.addKeyedSingleton(ILoggerKeyedToken, FileLogger, 'file');
+services.addKeyedSingleton(ILoggerKeyedToken, ConsoleLogger, 'console');
 
 // 6. TryAdd pattern (safe registration)
 services.tryAddSingleton(ILoggerToken, FileLogger); // Won't override existing Logger

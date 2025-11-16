@@ -59,4 +59,4 @@ Ready to infuse your code with clean dependencies? Start with our [Quick Start G
 
 ## Contributing
 
-We welcome contributions! Check out our [GitHub repository](https://github.com/nodelibs/ioc) to get involved.
+We welcome contributions! Check out our [GitHub repository](https://github.com/nodelibraries/ioc) to get involved.

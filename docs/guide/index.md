@@ -79,7 +79,7 @@ This container is inspired by .NET's dependency injection system. It provides si
 - ✅ Value registration
 - ✅ Circular dependency support
 
-For a detailed comparison, see the [COMPARISON.md](https://github.com/nodelibs/ioc/blob/main/COMPARISON.md) file in the repository.
+For a detailed comparison, see the [COMPARISON.md](https://github.com/nodelibraries/ioc/blob/main/COMPARISON.md) file in the repository.
 
 ## Next Steps
 

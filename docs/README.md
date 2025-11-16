@@ -31,7 +31,7 @@ This will preview the production build locally.
 The documentation is automatically deployed to GitHub Pages when changes are pushed to the `main` branch. The deployment is handled by the GitHub Actions workflow in `.github/workflows/docs.yml`.
 
 The documentation will be available at:
-`https://nodelibs.github.io/ioc/`
+`https://nodelibraries.github.io/ioc/`
 
 ## Structure
 
@@ -42,7 +42,7 @@ The documentation will be available at:
 
 ## Configuration
 
-Update the `base` path in `.vitepress/config.mts` to match your repository name:
+Update the `base` path in `.vitepress/config.ts` to match your repository name:
 
 ```typescript
 base: '/ioc/', // Change to match your repo name

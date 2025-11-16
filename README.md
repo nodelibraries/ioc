@@ -29,12 +29,6 @@ A lightweight, type-safe Inversion of Control (IoC) container inspired by .NET C
 npm install @nodelibraries/ioc
 ```
 
-**Note:** If the `@nodelibraries` scope is not available, you can use the unscoped package:
-
-```bash
-npm install @nodelibraries/ioc
-```
-
 ## Quick Start
 
 ### TypeScript
@@ -89,7 +83,7 @@ const users = userService.getUsers();
 ### JavaScript (CommonJS)
 
 ```javascript
-const { ServiceCollection, ServiceProvider, ServiceLifetime } = require('nodelibs-ioc');
+const { ServiceCollection, ServiceProvider, ServiceLifetime } = require('@nodelibraries/ioc');
 
 // Define services
 class Logger {
@@ -138,7 +132,7 @@ const provider = services.buildServiceProvider();
 ### JavaScript (ES Modules)
 
 ```javascript
-import { ServiceCollection, ServiceProvider } from 'nodelibs-ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 // ... same as TypeScript example above
 ```
@@ -303,9 +297,9 @@ node examples/js-circular-dependency.js
 
 ## Why @nodelibraries/ioc?
 
-**@nodelibraries/ioc** - A lightweight, type-safe IoC container designed for Node.js and TypeScript, inspired by .NET Core's dependency injection system. Seamlessly inject dependencies into your application with zero dependencies and no decorators required.
+A lightweight, type-safe IoC container designed for Node.js, TypeScript, and JavaScript, inspired by .NET Core's dependency injection system. Seamlessly inject dependencies into your application with zero dependencies and no decorators required.
 
-> 💡 **Learn more**: Check out our [documentation](https://nodelibs.github.io/ioc/guide/about) to understand our philosophy and design principles.
+> 💡 **Learn more**: Check out our [documentation](https://nodelibraries.github.io/ioc/guide/about) to understand our philosophy and design principles.
 
 ### 🚫 No Decorators - Clean Code
 
@@ -861,7 +855,7 @@ console.log(serviceB.getServiceAName()); // "ServiceA"
 - ✅ **Scoped** - Works within the same scope
 - ✅ **Transient** - Works within the same resolution call
 
-See the [Circular Dependencies Guide](https://nodelibs.github.io/ioc/guide/circular-dependencies) for detailed explanation.
+See the [Circular Dependencies Guide](https://nodelibraries.github.io/ioc/guide/circular-dependencies) for detailed explanation.
 
 ### Dependencies Parameter
 
@@ -1100,7 +1094,3 @@ This container is inspired by .NET Core's dependency injection system but design
 ## License
 
 ISC
-
-## Author
-
-ylcnfrht

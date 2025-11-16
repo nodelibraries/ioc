@@ -1,11 +1,11 @@
 # JavaScript Basic Example
 
-Basic usage of `@nodelibs/ioc` in JavaScript - service registration, resolution, dependency injection, and scopes.
+Basic usage of `@nodelibraries/ioc` in JavaScript - service registration, resolution, dependency injection, and scopes.
 
 ## Code
 
 ```javascript
-const { ServiceCollection, ServiceProvider, ServiceLifetime } = require('nodelibs-ioc');
+const { ServiceCollection, ServiceProvider, ServiceLifetime } = require('@nodelibraries/ioc');
 
 // Define services
 class Logger {

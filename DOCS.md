@@ -28,13 +28,13 @@ npm run docs:preview
 
 The documentation is automatically deployed to GitHub Pages via GitHub Actions when you push to the `main` branch.
 
-**Documentation URL:** `https://nodelibs.github.io/ioc/`
+**Documentation URL:** `https://nodelibraries.github.io/ioc/`
 
 ## Configuration
 
 ### Update Repository Name
 
-If your repository name is different, update the `base` path in `docs/.vitepress/config.mts`:
+If your repository name is different, update the `base` path in `docs/.vitepress/config.ts`:
 
 ```typescript
 base: '/ioc/', // Change this
@@ -42,10 +42,10 @@ base: '/ioc/', // Change this
 
 ### Update GitHub Links
 
-Update GitHub links in `docs/.vitepress/config.mts` and `docs/index.md`:
+Update GitHub links in `docs/.vitepress/config.ts` and `docs/index.md`:
 
 ```typescript
-{ text: 'GitHub', link: 'https://github.com/nodelibs/ioc' },
+{ text: 'GitHub', link: 'https://github.com/nodelibraries/ioc' },
 ```
 
 ## Structure
@@ -53,7 +53,7 @@ Update GitHub links in `docs/.vitepress/config.mts` and `docs/index.md`:
 ```
 docs/
 ├── .vitepress/
-│   ├── config.mts          # VitePress configuration
+│   ├── config.ts           # VitePress configuration
 │   └── theme/              # Custom theme
 ├── guide/                  # User guides
 ├── api/                    # API reference
@@ -64,7 +64,7 @@ docs/
 ## Adding New Pages
 
 1. Create a new `.md` file in the appropriate directory
-2. Add it to the sidebar in `docs/.vitepress/config.mts`
+2. Add it to the sidebar in `docs/.vitepress/config.ts`
 3. Use relative links for internal navigation
 
 ## Troubleshooting

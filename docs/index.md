@@ -5,8 +5,8 @@ hero:
   name: '@nodelibraries/ioc'
   text: Type-Safe IoC Container
   tagline: |
-    Seamless dependency injection for Node.js, TypeScript and JavaScript
-    Clean,fully type-safe with zero external libraries and no decorators required
+    Seamless dependency injection for Node.js, TypeScript and JavaScript.
+    Clean, fully type-safe with zero external libraries and no decorators required.
 
     Inspired by .NET Core's DI system.
   actions:

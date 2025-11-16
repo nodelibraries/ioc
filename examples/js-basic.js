@@ -1,7 +1,7 @@
 /**
  * JavaScript Basic Example
  * 
- * Demonstrates basic usage of nodelibs-ioc in JavaScript:
+ * Demonstrates basic usage of @nodelibraries/ioc in JavaScript:
  * - Service registration
  * - Service resolution
  * - Dependency injection
