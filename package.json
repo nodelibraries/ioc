@@ -1,5 +1,5 @@
 {
-  "name": "nodelibs-ioc",
+  "name": "@nodelibs/ioc",
   "version": "1.0.0",
   "description": "Type-Safe IoC Container for Node.js and TypeScript, inspired by .NET Core",
   "main": "dist/index.js",

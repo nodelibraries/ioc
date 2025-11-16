@@ -29,6 +29,11 @@ A lightweight, type-safe Inversion of Control (IoC) container inspired by .NET C
 npm install @nodelibs/ioc
 ```
 
+**Note:** If the `@nodelibs` scope is not available, you can use the unscoped package:
+```bash
+npm install nodelibs-ioc
+```
+
 ## Quick Start
 
 ```typescript
