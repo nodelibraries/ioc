@@ -1163,6 +1163,7 @@ The library works with both TypeScript and JavaScript. All features are availabl
 Basic JavaScript usage - service registration, resolution, dependency injection, and scopes.
 
 **Run:**
+
 ```bash
 node examples/js-basic.js
 ```
@@ -1174,11 +1175,13 @@ node examples/js-basic.js
 Advanced JavaScript features - factory pattern, keyed services, multiple implementations, value registration, service checking, and TryAdd pattern.
 
 **Run:**
+
 ```bash
 node examples/js-advanced.js
 ```
 
 **Key Points:**
+
 - All features work in JavaScript (same API as TypeScript)
 - No compile-time type safety
 - Runtime validation recommended in constructors

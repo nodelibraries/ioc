@@ -503,7 +503,12 @@ export class ServiceProvider {
 
     const results = await Promise.all(
       descriptors.map((desc) => {
-        const descriptorKey = this.getDescriptorKey(desc);
+        // Create descriptorKey same way as resolveService does
+        const descriptorKey = desc.implementation
+          ? `${token.toString()}:${desc.implementation.name || desc.implementation.toString()}`
+          : desc.factory
+          ? `${token.toString()}:factory:${desc.factory.toString()}`
+          : `${token.toString()}:value:${desc.value?.toString()}`;
         return this.resolveService(desc, token, descriptorKey);
       }),
     );
