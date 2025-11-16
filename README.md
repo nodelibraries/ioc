@@ -195,6 +195,42 @@ const provider = services.buildServiceProvider({
 });
 ```
 
+#### What do these options do?
+
+**`validateScopes: true`** - Catches lifetime mismatches at runtime:
+
+```typescript
+// ❌ ERROR: Scoped service injected into singleton
+services.addScoped<ILogger>(ILoggerToken, Logger);
+services.addSingleton<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
+
+const provider = services.buildServiceProvider({ validateScopes: true });
+// Throws: "Cannot inject scoped service 'ILogger' into singleton service 'IUserService'"
+
+// ✅ CORRECT: Scoped service used within scope
+services.addSingleton<ILogger>(ILoggerToken, Logger);
+services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
+
+const scope = provider.createScope();
+const userService = await scope.getRequiredService<IUserService>(IUserServiceToken); // ✅ Works!
+```
+
+**`validateOnBuild: true`** - Validates all dependencies at build time (catches missing dependencies early):
+
+```typescript
+// ❌ ERROR: Missing dependency detected at build time
+services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
+// ILoggerToken is not registered!
+
+const provider = services.buildServiceProvider({ validateOnBuild: true });
+// Throws: "Validation failed on build: Missing dependency: ILogger required by IUserService"
+
+// ✅ CORRECT: All dependencies registered
+services.addSingleton<ILogger>(ILoggerToken, Logger);
+services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
+const provider = services.buildServiceProvider({ validateOnBuild: true }); // ✅ No errors!
+```
+
 ### 🔄 Enhanced Circular Dependency Support
 
 Circular dependencies are automatically resolved for all service lifetimes, including Transient services (which .NET Core doesn't support).
