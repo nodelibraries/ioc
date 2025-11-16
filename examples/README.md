@@ -41,7 +41,7 @@ npm install
 npm run build
 ```
 
-**Note:** The Express examples (`17-express.ts` and `18-express-advanced.ts`) require additional dependencies. Install them with:
+**Note:** The Express examples (`16-express.ts` and `17-express-advanced.ts`) require additional dependencies. Install them with:
 
 ```bash
 npm install --save-dev express @types/express ts-node
@@ -68,8 +68,8 @@ npx ts-node examples/13-scope-validation.ts
 npx ts-node examples/14-circular-dependency.ts
 npx ts-node examples/15-complex-dependency-chain.ts
 npx ts-node examples/16-service-management.ts
-npx ts-node examples/17-express.ts
-npx ts-node examples/18-express-advanced.ts
+npx ts-node examples/16-express.ts
+npx ts-node examples/17-express-advanced.ts
 ```
 
 ### Using Node.js (after build)
@@ -95,8 +95,8 @@ node dist/examples/13-scope-validation.js
 node dist/examples/14-circular-dependency.js
 node dist/examples/15-complex-dependency-chain.js
 node dist/examples/16-service-management.js
-node dist/examples/17-express.js
-node dist/examples/18-express-advanced.js
+node dist/examples/16-express.js
+node dist/examples/17-express-advanced.js
 ```
 
 ## Examples Overview
@@ -227,13 +227,13 @@ Examples are organized from basic to advanced:
 - Test scenarios with service replacement
 - Configuration-based service replacement
 
-**17. 17-express.ts** - Express Integration
+**17. 16-express.ts** - Express Integration
 
 - Request-scoped services
 - Middleware for scope management
 - RESTful API with dependency injection
 
-**18. 18-express-advanced.ts** - Advanced Express Integration
+**18. 17-express-advanced.ts** - Advanced Express Integration
 
 - Multiple services with dependencies
 - Middleware using IoC container

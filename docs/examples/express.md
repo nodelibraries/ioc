@@ -116,7 +116,11 @@ app.use(async (req: Request, res: Response, next) => {
   const scope = provider.createScope();
   (req as any).scope = scope;
   res.on('finish', async () => {
-    await scope.dispose();
+    try {
+      await scope.dispose();
+    } catch (error) {
+      console.error('Error disposing scope:', error);
+    }
   });
   next();
 });
@@ -204,7 +208,7 @@ For example, when calling GET /users:
 npm install --save-dev express @types/express ts-node
 
 # Then run the example
-npx ts-node examples/17-express.ts
+npx ts-node examples/16-express.ts
 ```
 
 ## Test the API

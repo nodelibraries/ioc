@@ -228,9 +228,13 @@ function createRequestScopeMiddleware(provider: ServiceProvider) {
 
     // Cleanup on response finish
     res.on('finish', async () => {
-      const duration = Date.now() - startTime;
-      logger.log(`Request finished: ${req.method} ${req.path} [${requestId}] - ${duration}ms`);
-      await scope.dispose();
+      try {
+        const duration = Date.now() - startTime;
+        logger.log(`Request finished: ${req.method} ${req.path} [${requestId}] - ${duration}ms`);
+        await scope.dispose();
+      } catch (error) {
+        console.error('Error disposing scope:', error);
+      }
     });
 
     next();

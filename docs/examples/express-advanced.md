@@ -237,7 +237,11 @@ function createRequestScopeMiddleware(provider: ServiceProvider) {
     res.on('finish', async () => {
       const duration = Date.now() - startTime;
       logger.log(`Request finished: ${req.method} ${req.path} [${requestId}] - ${duration}ms`);
-      await scope.dispose();
+      try {
+        await scope.dispose();
+      } catch (error) {
+        console.error('Error disposing scope:', error);
+      }
     });
 
     next();
@@ -495,7 +499,7 @@ Press Ctrl+C to stop the server
 npm install --save-dev express @types/express ts-node
 
 # Then run the example
-npx ts-node examples/18-express-advanced.ts
+npx ts-node examples/17-express-advanced.ts
 ```
 
 ## Test the API

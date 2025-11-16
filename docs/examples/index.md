@@ -11,7 +11,7 @@ npm install
 npm run build
 ```
 
-**Note:** The Express examples (`17-express.ts` and `18-express-advanced.ts`) require additional dependencies:
+**Note:** The Express examples (`16-express.ts` and `17-express-advanced.ts`) require additional dependencies:
 
 ```bash
 npm install --save-dev express @types/express ts-node
@@ -1021,11 +1021,11 @@ Available endpoints:
 [<timestamp>] Service: Getting all users
 ```
 
-**Full Example:** [express.md](./express) | [Source Code](../../examples/17-express.ts)
+**Full Example:** [express.md](./express) | [Source Code](../../examples/16-express.ts)
 
 ---
 
-#### 18. Advanced Express Integration
+#### 17. Advanced Express Integration
 
 More complex Express.js application with multiple services, middleware, authentication, error handling, and request context.
 
@@ -1148,7 +1148,7 @@ app.listen(3000, () => {
 [INFO] <timestamp> - Request finished: GET /users [req-...] - <duration>ms
 ```
 
-**Full Example:** [express-advanced.md](./express-advanced) | [Source Code](../../examples/18-express-advanced.ts)
+**Full Example:** [express-advanced.md](./express-advanced) | [Source Code](../../examples/17-express-advanced.ts)
 
 ---
 

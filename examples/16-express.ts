@@ -109,7 +109,11 @@ app.use(async (req: Request, res: Response, next) => {
   const scope = provider.createScope();
   (req as any).scope = scope;
   res.on('finish', async () => {
-    await scope.dispose();
+    try {
+      await scope.dispose();
+    } catch (error) {
+      console.error('Error disposing scope:', error);
+    }
   });
   next();
 });

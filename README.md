@@ -1013,11 +1013,11 @@ Check out the [examples](./examples) directory for complete, runnable examples:
 - **14-circular-dependency.ts** - Circular Dependency Resolution (Singleton, Scoped, Transient support)
 - **15-complex-dependency-chain.ts** - Complex Dependency Chain (deep chains, multiple shared dependencies)
 
-### Real-World Applications (16-18)
+### Real-World Applications (16-17)
 
 - **16-service-management.ts** - Service Management (Remove/RemoveAll, dynamic management)
-- **17-express.ts** - Express Integration (request-scoped services, middleware)
-- **18-express-advanced.ts** - Advanced Express Integration (authentication, error handling, request context)
+- **16-express.ts** - Express Integration (request-scoped services, middleware)
+- **17-express-advanced.ts** - Advanced Express Integration (authentication, error handling, request context)
 
 See [examples/README.md](./examples/README.md) for detailed descriptions and running instructions.
 
