@@ -1,38 +1,16 @@
 import { defineConfig } from 'vitepress';
 
 export default defineConfig({
-  title: '@nodelibs/ioc',
-  description: 'Type-Safe IoC Container for Node.js and TypeScript',
+  title: '@nodelibraries/ioc',
+  description: 'Type-Safe IoC Container for Node.js, TypeScript and JavaScript',
   base: '/ioc/',
-
-  // Enable search
+  
   themeConfig: {
-    search: {
-      provider: 'local',
-      options: {
-        translations: {
-          button: {
-            buttonText: 'Search',
-            buttonAriaLabel: 'Search documentation',
-          },
-          modal: {
-            noResultsText: 'No results found',
-            resetButtonTitle: 'Reset search',
-            footer: {
-              selectText: 'to select',
-              navigateText: 'to navigate',
-              closeText: 'to close',
-            },
-          },
-        },
-      },
-    },
-
     nav: [
-      { text: 'Home', link: '/' },
       { text: 'Guide', link: '/guide/' },
       { text: 'Examples', link: '/examples/' },
       { text: 'API', link: '/api/' },
+      { text: 'GitHub', link: 'https://github.com/nodelibraries/ioc' },
     ],
 
     sidebar: {
@@ -40,7 +18,7 @@ export default defineConfig({
         {
           text: 'Getting Started',
           items: [
-            { text: 'Introduction', link: '/guide/' },
+            { text: 'About', link: '/guide/about' },
             { text: 'Installation', link: '/guide/installation' },
             { text: 'Quick Start', link: '/guide/quick-start' },
           ],
@@ -48,14 +26,14 @@ export default defineConfig({
         {
           text: 'Core Concepts',
           items: [
-            { text: 'Dependency Injection', link: '/guide/dependency-injection' },
             { text: 'Registration', link: '/guide/registration' },
             { text: 'Service Lifetimes', link: '/guide/service-lifetimes' },
             { text: 'Tokens', link: '/guide/tokens' },
+            { text: 'Dependency Injection', link: '/guide/dependency-injection' },
           ],
         },
         {
-          text: 'Advanced',
+          text: 'Advanced Features',
           items: [
             { text: 'Factory Pattern', link: '/guide/factory-pattern' },
             { text: 'Multiple Implementations', link: '/guide/multiple-implementations' },
@@ -68,34 +46,53 @@ export default defineConfig({
       ],
       '/examples/': [
         {
-          text: 'Examples',
+          text: 'Basic Examples',
           items: [
-            { text: 'Overview', link: '/examples/' },
-            { text: '1. Basic', link: '/examples/basic' },
-            { text: '2. Interface Registration', link: '/examples/interface-registration' },
-            { text: '3. String Token', link: '/examples/string-token' },
-            { text: '4. Lifetimes', link: '/examples/lifetimes' },
-            { text: '5. Lifecycle', link: '/examples/lifecycle' },
-            { text: '6. Value Registration', link: '/examples/value-registration' },
-            { text: '7. Generic Types', link: '/examples/generic-types' },
-            { text: '8. Factory Pattern', link: '/examples/factory-pattern' },
-            { text: '9. Multiple Implementations', link: '/examples/multiple-implementations' },
-            { text: '10. TryAdd Pattern', link: '/examples/tryadd-pattern' },
-            { text: '11. Keyed Services', link: '/examples/keyed-services' },
-            { text: '12. Duplicate Registration', link: '/examples/duplicate-registration' },
-            { text: '13. Scope Validation', link: '/examples/scope-validation' },
-            { text: '14. Circular Dependency', link: '/examples/circular-dependency' },
-            { text: '15. Complex Dependency Chain', link: '/examples/complex-dependency-chain' },
-            { text: '16. Service Management', link: '/examples/service-management' },
-            { text: '17. Express Integration', link: '/examples/express' },
-            { text: '18. Advanced Express', link: '/examples/express-advanced' },
+            { text: 'Basic Usage', link: '/examples/basic' },
+            { text: 'Interface Registration', link: '/examples/interface-registration' },
+            { text: 'String Token', link: '/examples/string-token' },
+          ],
+        },
+        {
+          text: 'Core Concepts',
+          items: [
+            { text: 'Lifetimes', link: '/examples/lifetimes' },
+            { text: 'Lifecycle', link: '/examples/lifecycle' },
+            { text: 'Value Registration', link: '/examples/value-registration' },
+          ],
+        },
+        {
+          text: 'Advanced Features',
+          items: [
+            { text: 'Generic Types', link: '/examples/generic-types' },
+            { text: 'Factory Pattern', link: '/examples/factory-pattern' },
+            { text: 'Multiple Implementations', link: '/examples/multiple-implementations' },
+            { text: 'TryAdd Pattern', link: '/examples/tryadd-pattern' },
+            { text: 'Keyed Services', link: '/examples/keyed-services' },
+            { text: 'Duplicate Registration', link: '/examples/duplicate-registration' },
+            { text: 'Scope Validation', link: '/examples/scope-validation' },
+          ],
+        },
+        {
+          text: 'Complex Scenarios',
+          items: [
+            { text: 'Circular Dependency', link: '/examples/circular-dependency' },
+            { text: 'Complex Dependency Chain', link: '/examples/complex-dependency-chain' },
+          ],
+        },
+        {
+          text: 'Real-World Applications',
+          items: [
+            { text: 'Service Management', link: '/examples/service-management' },
+            { text: 'Express Integration', link: '/examples/express' },
+            { text: 'Advanced Express', link: '/examples/express-advanced' },
           ],
         },
         {
           text: 'JavaScript Examples',
           items: [
-            { text: 'JS Basic', link: '/examples/js-basic' },
-            { text: 'JS Advanced', link: '/examples/js-advanced' },
+            { text: 'JavaScript Basic', link: '/examples/js-basic' },
+            { text: 'JavaScript Advanced', link: '/examples/js-advanced' },
           ],
         },
       ],
@@ -110,6 +107,15 @@ export default defineConfig({
           ],
         },
       ],
+    },
+
+    socialLinks: [
+      { icon: 'github', link: 'https://github.com/nodelibraries/ioc' },
+    ],
+
+    footer: {
+      message: 'Released under the MIT License.',
+      copyright: 'Copyright © 2025 nodelibraries',
     },
   },
 });
