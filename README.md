@@ -21,7 +21,7 @@ A lightweight, type-safe Inversion of Control (IoC) container inspired by .NET C
 - 🗑️ **Service Management** - Remove, replace, and manage services dynamically
 - 🔄 **Lifecycle Hooks** - onInit() and onDestroy() callbacks
 - 💎 **Value Registration** - Register pre-created values (JSON, primitives, instances)
-- 🔄 **Circular Dependency Support** - Automatic resolution of circular dependencies (like .NET Core)
+- 🔄 **Circular Dependency Support** - Automatic resolution of circular dependencies for all lifetimes
 
 ## Installation
 
@@ -143,21 +143,7 @@ import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 1. **Add runtime validation** in constructors (as shown above)
 2. **Use TypeScript** for compile-time type safety
-3. **Use JSDoc** for better IDE support:
-
-   ```javascript
-   /**
-    * @typedef {Object} ILogger
-    * @property {function(string): void} log
-    */
-
-   /**
-    * @param {ILogger} logger
-    */
-   constructor(logger) {
-     this.logger = logger;
-   }
-   ```
+3. **Use JSDoc** for better IDE support
 
 **✅ IoC Container Protection:**
 
@@ -825,7 +811,7 @@ const provider = services.buildServiceProvider({
 
 ### Circular Dependencies
 
-Circular dependencies are automatically resolved for all service lifetimes (similar to .NET Core):
+Circular dependencies are automatically resolved for all service lifetimes:
 
 ```typescript
 class ServiceA {
@@ -1083,8 +1069,9 @@ This container is inspired by .NET Core's dependency injection system but design
 
 - 🎯 TypeScript-first design with better type inference
 - 🚫 No decorator pollution
-- 🔄 Custom lifecycle hooks
+- 🔄 Custom lifecycle hooks (`onInit`, `onDestroy`)
 - 📦 Lighter weight for Node.js ecosystem
+- 🔄 **Enhanced circular dependency support** - Works for all lifetimes (better than .NET Core)
 
 ## Requirements
 

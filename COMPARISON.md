@@ -15,7 +15,7 @@ This document compares our `@nodelibraries/ioc` implementation with .NET's built
 - ✅ **Lifecycle hooks** - `onInit()` and `onDestroy()` callbacks
 - ✅ **No decorators** - Clean code without annotations
 - ✅ **Multiple token types** - Symbol, string, or class constructor
-- ✅ **Circular dependency support** - Automatic resolution for all lifetimes (like .NET Core)
+- ✅ **Circular dependency support** - Automatic resolution for all lifetimes (Singleton, Scoped, Transient)
 
 ### Advanced Features
 
@@ -107,68 +107,6 @@ services.AddDbContext<AppDbContext>();
 - No automatic constructor selection
 - **Impact:** Less flexible constructor injection
 
-### 7. Open Generics Support
-
-**.NET:**
-
-```csharp
-services.AddSingleton(typeof(ILogger<>), typeof(Logger<>));
-// Automatically resolves ILogger<AnyType>
-```
-
-**Our Implementation:**
-
-- ❌ No open generics support
-- Must register each generic type separately
-- **Impact:** More verbose for generic services
-
-### 8. Service Descriptor Pattern
-
-**.NET:**
-
-```csharp
-var descriptor = new ServiceDescriptor(
-    typeof(IMyService),
-    typeof(MyService),
-    ServiceLifetime.Singleton);
-services.Add(descriptor);
-```
-
-**Our Implementation:**
-
-- ❌ No low-level ServiceDescriptor API
-- Only high-level registration methods
-- **Impact:** Less flexibility for advanced scenarios
-
-### 9. IDisposable Automatic Handling
-
-**.NET:**
-
-- Automatically calls `Dispose()` on `IDisposable` services
-- Handles disposal based on lifetime
-
-**Our Implementation:**
-
-- ⚠️ Has `onDestroy()` lifecycle hook (custom)
-- No automatic `IDisposable` support
-- **Impact:** Different pattern, but similar functionality
-
-### 10. Extension Methods Convention
-
-**.NET:**
-
-```csharp
-// Convention: Add{GROUP_NAME}
-services.AddControllers();
-services.AddDbContext<AppDbContext>();
-```
-
-**Our Implementation:**
-
-- ❌ No extension method convention
-- All registration through ServiceCollection
-- **Impact:** Less modular registration patterns
-
 ## 📊 Feature Comparison Table
 
 | Feature                  | .NET DI | @nodelibraries/ioc | Status |
@@ -194,7 +132,7 @@ services.AddDbContext<AppDbContext>();
 | Value Registration       | ✅      | ✅                 | ✅     |
 | Lifecycle Hooks          | ❌      | ✅                 | ✅     |
 | No Decorators            | ✅      | ✅                 | ✅     |
-| Circular Dependencies    | ✅      | ✅                 | ✅     |
+| Circular Dependencies    | ⚠️      | ✅                 | ✅     |
 
 ## ✅ Recently Added Features
 

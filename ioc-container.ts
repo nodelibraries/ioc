@@ -463,7 +463,7 @@ export class ServiceProvider {
   private scopedInstances = new Map<Token, any>();
   private destroyed = false;
   private readonly validateScopes: boolean;
-  // Resolution stack for circular dependency detection (like .NET Core)
+  // Resolution stack for circular dependency detection
   private resolutionStack = new Set<Token>();
   // Track instances currently being constructed (for circular dependencies)
   private constructingInstances = new Map<Token, any>();
@@ -722,10 +722,10 @@ export class ServiceProvider {
       throw new Error('Invalid service descriptor: ' + JSON.stringify(desc) + ' for token: ' + desc.token.toString());
     }
 
-    // For circular dependency support (like .NET Core):
-    // The key insight: In .NET Core, when a constructor is called, if a dependency
-    // is already being constructed (in resolution stack), the partially constructed
-    // instance is returned. In TypeScript/JavaScript, we need to:
+    // For circular dependency support:
+    // When a constructor is called, if a dependency is already being constructed
+    // (in resolution stack), the partially constructed instance is returned.
+    // In TypeScript/JavaScript, we need to:
     // 1. Create instance first (with placeholders for circular deps)
     // 2. Store it in constructingInstances before resolving dependencies
     // 3. Resolve dependencies (circular ones will get the partial instance)

@@ -82,4 +82,3 @@ node examples/js-basic.js
 - **No Type Safety**: JavaScript doesn't provide compile-time type checking
 - **Runtime Validation**: Consider adding validation in constructors
 - **All Features Work**: Same API as TypeScript, just without types
-

@@ -53,7 +53,7 @@ features:
     details: Detect lifetime mismatches at build time with validateScopes and validateOnBuild
   - icon: 🔄
     title: Circular Dependencies
-    details: Automatic resolution of circular dependencies (like .NET Core)
+    details: Automatic resolution of circular dependencies for all lifetimes (Singleton, Scoped, Transient)
   - icon: 🔍
     title: Service Checking
     details: Check service existence with isService() without resolving

@@ -328,4 +328,4 @@ Circular dependency resolution works with 3 basic mechanisms:
 2. **Partial Instance**: When a circular dependency is detected, returns a partially created instance
 3. **Property Copying**: After dependencies are resolved, updates the partial instance with real values
 
-This approach works with the same logic as .NET Core's DI container and is valid for all service lifetimes.
+This approach uses a resolution stack mechanism to detect and handle circular dependencies, and is valid for all service lifetimes (Singleton, Scoped, and Transient).

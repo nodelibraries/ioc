@@ -18,7 +18,7 @@
 - 🔑 **Keyed Services** - Key-based service lookup (with getRequiredKeyedService)
 - ✅ **TryAdd Pattern** - Safe registration without overriding
 - 🛡️ **Scope Validation** - Detect lifetime mismatches at build time (validateScopes & validateOnBuild)
-- 🔄 **Circular Dependencies** - Automatic resolution of circular dependencies (like .NET Core)
+- 🔄 **Circular Dependencies** - Automatic resolution of circular dependencies for all lifetimes
 - 🔍 **Service Checking** - Check service existence with isService() without resolving
 - 🗑️ **Service Management** - Remove, replace, and manage services dynamically
 - 🔄 **Lifecycle Hooks** - onInit() and onDestroy() callbacks for service initialization and cleanup

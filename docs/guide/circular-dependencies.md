@@ -24,30 +24,22 @@ In this example:
 
 ## How .NET Core Handles Circular Dependencies
 
-.NET Core's dependency injection container (`Microsoft.Extensions.DependencyInjection`) handles circular dependencies using a **resolution stack** mechanism:
+.NET Core's dependency injection container (`Microsoft.Extensions.DependencyInjection`) **does not automatically resolve circular dependencies**. In most cases, circular dependencies will cause:
 
-### How It Works
+- **Stack overflow exceptions** during service resolution
+- **Infinite loops** when trying to resolve services
+- **Application startup failures**
 
-1. **Resolution Stack Tracking**: The container maintains a call stack of services currently being resolved. When resolving a service, it checks if that service is already in the resolution stack.
+### .NET Core Behavior
 
-2. **Singleton Services**: For **Singleton** services, .NET Core allows circular dependencies because:
-
-   - Singletons are created once and cached
-   - During construction, if a dependency is already in the resolution stack, the container can return the **partially constructed instance**
-   - This works because the object reference is created first, then dependencies are injected
-
-3. **Scoped Services**: For **Scoped** services, circular dependencies can work within the same scope because:
-
-   - Services are resolved within a scope context
-   - The resolution stack is tracked per scope
-   - Similar to singletons, partially constructed instances can be used
-
-4. **Transient Services**: Circular dependencies with **Transient** services are more problematic and can still cause stack overflow errors.
+1. **Singleton Services**: May sometimes work due to object reference creation order, but **not guaranteed** and can still fail
+2. **Scoped Services**: Typically **fails** with stack overflow
+3. **Transient Services**: **Always fails** with stack overflow
 
 ### Example in .NET Core
 
 ```csharp
-// This works in .NET Core for Singleton services
+// This will typically FAIL in .NET Core
 public class ServiceA
 {
     public ServiceA(ServiceB serviceB) { }
@@ -62,24 +54,20 @@ public class ServiceB
 services.AddSingleton<ServiceA>();
 services.AddSingleton<ServiceB>();
 
-// Resolution works because:
-// 1. Start resolving ServiceA
-// 2. ServiceA needs ServiceB, start resolving ServiceB
-// 3. ServiceB needs ServiceA, but ServiceA is in resolution stack
-// 4. Return partially constructed ServiceA instance
-// 5. Complete ServiceB construction
-// 6. Complete ServiceA construction
+// Resolution will likely throw:
+// System.InvalidOperationException: A circular dependency was detected
+// or StackOverflowException
 ```
 
 ### Key Differences
 
-| Aspect                | .NET Core                      | @nodelibraries/ioc (Current)      |
-| --------------------- | ------------------------------ | --------------------------------- |
-| **Detection**         | Runtime (via resolution stack) | ✅ Runtime (via resolution stack) |
-| **Singleton Support** | ✅ Works                       | ✅ Works                          |
-| **Scoped Support**    | ✅ Works (within scope)        | ✅ Works (within scope)           |
-| **Transient Support** | ⚠️ May fail                    | ✅ Works (within same resolution) |
-| **Error Messages**    | Clear stack trace              | ✅ Clear error messages           |
+| Aspect                | .NET Core                   | @nodelibraries/ioc                |
+| --------------------- | --------------------------- | --------------------------------- |
+| **Detection**         | Runtime (throws exception)  | ✅ Runtime (via resolution stack) |
+| **Singleton Support** | ⚠️ May fail                 | ✅ Works                          |
+| **Scoped Support**    | ❌ Fails                    | ✅ Works (within scope)           |
+| **Transient Support** | ❌ Fails                    | ✅ Works (within same resolution) |
+| **Error Messages**    | Stack overflow or exception | ✅ Clear error messages           |
 
 ## How @nodelibraries/ioc Handles Circular Dependencies
 

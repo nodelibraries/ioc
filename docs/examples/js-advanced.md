@@ -116,7 +116,6 @@ const provider = services.buildServiceProvider();
     // Logger should still be the original Logger, not FileLogger
     const originalLogger = await provider.getRequiredService(ILoggerToken);
     originalLogger.log('This should be from Logger class, not FileLogger');
-
   } catch (error) {
     console.error('Error:', error.message);
   }
@@ -167,4 +166,3 @@ node examples/js-advanced.js
 - **No Type Safety**: Must manually ensure correct types
 - **Runtime Validation**: Add checks in constructors for safety
 - **Same API**: Identical to TypeScript API, just without type annotations
-
