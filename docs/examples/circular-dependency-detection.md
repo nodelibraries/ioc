@@ -114,8 +114,8 @@ console.log(services.visualizeCircularDependencies());
 ## Run This Example
 
 ```bash
-npx ts-node examples/21-circular-dependency-detection.ts
+npx ts-node examples/19-circular-dependency-detection.ts
 ```
 
-**Full Example:** [Source Code](../../examples/21-circular-dependency-detection.ts)
+**Full Example:** [Source Code](../../examples/19-circular-dependency-detection.ts)
 

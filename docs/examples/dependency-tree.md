@@ -70,8 +70,8 @@ Returns a formatted string representation of the dependency tree, suitable for c
 ## Run This Example
 
 ```bash
-npx ts-node examples/20-dependency-tree.ts
+npx ts-node examples/18-dependency-tree.ts
 ```
 
-**Full Example:** [Source Code](../../examples/20-dependency-tree.ts)
+**Full Example:** [Source Code](../../examples/18-dependency-tree.ts)
 

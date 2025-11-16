@@ -1021,10 +1021,10 @@ Check out the [examples](./examples) directory for complete, runnable examples:
 - **16-express.ts** - Express Integration (request-scoped services, middleware)
 - **17-express-advanced.ts** - Advanced Express Integration (authentication, error handling, request context)
 
-### Analysis & Visualization (19-20)
+### Analysis & Visualization (18-19)
 
-- **20-dependency-tree.ts** - Dependency Tree Visualization (visualize service dependencies, detect circular dependencies in trees)
-- **21-circular-dependency-detection.ts** - Circular Dependency Detection (detect and visualize all circular dependencies)
+- **18-dependency-tree.ts** - Dependency Tree Visualization (visualize service dependencies, detect circular dependencies in trees)
+- **19-circular-dependency-detection.ts** - Circular Dependency Detection (detect and visualize all circular dependencies)
 
 See [examples/README.md](./examples/README.md) for detailed descriptions and running instructions.
 

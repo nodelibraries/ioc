@@ -1,6 +1,6 @@
 /**
  * Dependency Tree Visualization Example
- * 
+ *
  * Demonstrates how to visualize dependency trees for services
  */
 
@@ -110,16 +110,15 @@ async function main() {
   services.addSingleton<IDatabase>(IDatabaseToken, Database, [IConfigToken]);
   services.addSingleton<IUserRepository>(IUserRepositoryToken, UserRepository, [IDatabaseToken, ILoggerToken]);
   services.addSingleton<IEmailService>(IEmailServiceToken, EmailService, [ILoggerToken]);
-  services.addSingleton<INotificationService>(
+  services.addSingleton<INotificationService>(INotificationServiceToken, NotificationService, [
+    IEmailServiceToken,
+    ILoggerToken,
+  ]);
+  services.addSingleton<IUserService>(IUserServiceToken, UserService, [
+    IUserRepositoryToken,
+    ILoggerToken,
     INotificationServiceToken,
-    NotificationService,
-    [IEmailServiceToken, ILoggerToken],
-  );
-  services.addSingleton<IUserService>(
-    IUserServiceToken,
-    UserService,
-    [IUserRepositoryToken, ILoggerToken, INotificationServiceToken],
-  );
+  ]);
 
   // Visualize dependency trees
   console.log('1. Dependency Tree for UserService:');
@@ -287,4 +286,3 @@ Circular Dependency 1:
   Symbol(ServiceA) → Symbol(ServiceB) → Symbol(ServiceC) → Symbol(ServiceA)
 
 */
-

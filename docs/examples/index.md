@@ -1154,7 +1154,7 @@ app.listen(3000, () => {
 
 ---
 
-#### 19. Dependency Tree Visualization
+#### 18. Dependency Tree Visualization
 
 Visualize and analyze service dependency trees. See the complete dependency hierarchy, detect circular dependencies, and get structured tree data.
 
@@ -1183,11 +1183,11 @@ const tree = services.getDependencyTree(IUserServiceToken);
     └── Symbol(ILogger) [SINGLETON]
 ```
 
-**Full Example:** [dependency-tree.md](./dependency-tree) | [Source Code](../../examples/20-dependency-tree.ts)
+**Full Example:** [dependency-tree.md](./dependency-tree) | [Source Code](../../examples/18-dependency-tree.ts)
 
 ---
 
-#### 20. Circular Dependency Detection
+#### 19. Circular Dependency Detection
 
 Detect and visualize all circular dependencies in your service collection. Works with simple and complex circular dependencies, and multiple independent cycles.
 
@@ -1213,7 +1213,7 @@ Circular Dependency 1:
   Symbol(ServiceA) → Symbol(ServiceB) → Symbol(ServiceC) → Symbol(ServiceA)
 ```
 
-**Full Example:** [circular-dependency-detection.md](./circular-dependency-detection) | [Source Code](../../examples/21-circular-dependency-detection.ts)
+**Full Example:** [circular-dependency-detection.md](./circular-dependency-detection) | [Source Code](../../examples/19-circular-dependency-detection.ts)
 
 ---
 
