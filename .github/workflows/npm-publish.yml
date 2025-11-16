@@ -20,7 +20,7 @@ jobs:
       pull-requests: read
     # Skip if this is a version bump commit to prevent infinite loop
     if: "!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, 'chore: bump version')"
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -85,10 +85,29 @@ jobs:
           git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }} [skip ci]"
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
 
+      - name: Verify npm authentication
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "Verifying npm authentication..."
+          npm whoami --registry=https://registry.npmjs.org || (echo "❌ npm authentication failed. Please check NPM_TOKEN secret." && exit 1)
+          echo "✅ npm authentication successful"
+
+      - name: Check package existence
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "Checking if package exists on npm..."
+          if npm view @nodelibraries/ioc version 2>/dev/null; then
+            echo "✅ Package exists on npm"
+          else
+            echo "⚠️  Package does not exist yet. This will be the first publish."
+          fi
+
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           VERSION="${{ steps.bump.outputs.new_version }}"
           echo "Publishing version: $VERSION"
-          npm publish --access public
+          npm publish --access public --registry=https://registry.npmjs.org
