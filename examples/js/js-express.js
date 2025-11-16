@@ -104,7 +104,7 @@ app.listen(PORT, () => {
 
 /* Expected Console Output when accessing /users:
 
-[LOG] 2024-01-01T12:00:00.000Z - Fetching users...
+[LOG] 2025-01-01T12:00:00.000Z - Fetching users...
 
 */
 

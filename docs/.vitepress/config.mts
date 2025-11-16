@@ -76,7 +76,7 @@ export default defineConfig({
     socialLinks: [{ icon: 'github', link: 'https://github.com/ylcnfrht/node-ioc-container' }],
     footer: {
       message: 'Released under the ISC License.',
-      copyright: 'Copyright © 2024',
+      copyright: 'Copyright © 2025',
     },
   },
 });

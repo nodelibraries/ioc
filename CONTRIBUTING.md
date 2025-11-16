@@ -7,6 +7,7 @@ Thank you for your interest in contributing to `@nodelibraries/ioc`! This docume
 ### Reporting Bugs
 
 If you find a bug, please open an issue with:
+
 - A clear title and description
 - Steps to reproduce the issue
 - Expected vs actual behavior
@@ -16,6 +17,7 @@ If you find a bug, please open an issue with:
 ### Suggesting Features
 
 Feature suggestions are welcome! Please open an issue with:
+
 - A clear description of the feature
 - Use cases and examples
 - Potential implementation approach (if you have ideas)
@@ -92,4 +94,3 @@ Be respectful, inclusive, and constructive in all interactions.
 ## 🙏 Thank You!
 
 Your contributions make this project better for everyone. Thank you for taking the time to contribute!
-
