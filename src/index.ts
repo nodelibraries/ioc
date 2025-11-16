@@ -1,6 +1,5 @@
+export { ServiceCollection, ServiceProvider } from './ioc-container';
 export {
-  ServiceCollection,
-  ServiceProvider,
   ServiceLifetime,
   type ServiceDescriptor,
   type ServiceFactory,
@@ -8,4 +7,5 @@ export {
   type Newable,
   type DependencyTreeNode,
   type CircularDependency,
-} from './ioc-container';
+  type LifecycleHooks,
+} from './types';

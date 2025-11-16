@@ -1,11 +1,5 @@
-import {
-  ServiceCollection,
-  ServiceProvider,
-  ServiceLifetime,
-  type ServiceFactory,
-  type DependencyTreeNode,
-  type CircularDependency,
-} from '../src/ioc-container';
+import { ServiceCollection, ServiceProvider } from '../src/ioc-container';
+import { ServiceLifetime, type ServiceFactory, type DependencyTreeNode, type CircularDependency } from '../src/types';
 
 describe('ServiceCollection', () => {
   describe('addSingleton', () => {
@@ -269,6 +263,52 @@ describe('ServiceCollection', () => {
     });
   });
 
+  describe('Keyed services edge cases', () => {
+    it('should support multiple keys for same token', async () => {
+      const services = new ServiceCollection();
+      const token = Symbol('Test');
+      class Service1 {
+        value = 'service1';
+      }
+      class Service2 {
+        value = 'service2';
+      }
+      services.addKeyedSingleton(token, Service1, 'key1');
+      services.addKeyedSingleton(token, Service2, 'key2');
+      const provider = services.buildServiceProvider();
+      const instance1 = await provider.getRequiredKeyedService<Service1>(token, 'key1');
+      const instance2 = await provider.getRequiredKeyedService<Service2>(token, 'key2');
+      expect(instance1.value).toBe('service1');
+      expect(instance2.value).toBe('service2');
+      expect(instance1).not.toBe(instance2);
+    });
+
+    it('should support keyed services with factory', async () => {
+      const services = new ServiceCollection();
+      const token = Symbol('Test');
+      const factory: ServiceFactory<{ value: string }> = () => ({ value: 'factory' });
+      services.addKeyedSingleton(token, factory, 'key1');
+      const provider = services.buildServiceProvider();
+      const instance = await provider.getRequiredKeyedService<{ value: string }>(token, 'key1');
+      expect(instance.value).toBe('factory');
+    });
+
+    it('should support keyed scoped services in different scopes', async () => {
+      const services = new ServiceCollection();
+      const token = Symbol('Test');
+      class TestService {}
+      services.addKeyedScoped(token, TestService, 'key1');
+      const provider = services.buildServiceProvider();
+      const scope1 = provider.createScope();
+      const scope2 = provider.createScope();
+      const instance1a = await scope1.getRequiredKeyedService(token, 'key1');
+      const instance1b = await scope1.getRequiredKeyedService(token, 'key1');
+      const instance2 = await scope2.getRequiredKeyedService(token, 'key1');
+      expect(instance1a).toBe(instance1b); // Same scope
+      expect(instance1a).not.toBe(instance2); // Different scope
+    });
+  });
+
   describe('buildServiceProvider', () => {
     it('should build provider without options', () => {
       const services = new ServiceCollection();
@@ -280,6 +320,179 @@ describe('ServiceCollection', () => {
       const services = new ServiceCollection();
       const provider = services.buildServiceProvider({ validateScopes: true });
       expect(provider).toBeInstanceOf(ServiceProvider);
+    });
+
+    it('should validate dependencies on build when validateOnBuild is true', () => {
+      const services = new ServiceCollection();
+      const token1 = Symbol('Test1');
+      const token2 = Symbol('Test2');
+      class TestService2 {
+        constructor(private test1: any) {}
+      }
+      services.addSingleton(token2, TestService2, [token1]);
+      // token1 is not registered, should throw
+      expect(() => {
+        services.buildServiceProvider({ validateOnBuild: true });
+      }).toThrow('Validation failed on build');
+    });
+
+    it('should not validate dependencies on build when validateOnBuild is false', () => {
+      const services = new ServiceCollection();
+      const token1 = Symbol('Test1');
+      const token2 = Symbol('Test2');
+      class TestService2 {
+        constructor(private test1: any) {}
+      }
+      services.addSingleton(token2, TestService2, [token1]);
+      // Should not throw when validateOnBuild is false
+      const provider = services.buildServiceProvider({ validateOnBuild: false });
+      expect(provider).toBeInstanceOf(ServiceProvider);
+    });
+  });
+
+  describe('remove', () => {
+    it('should remove service registration', () => {
+      const services = new ServiceCollection();
+      const token = Symbol('Test');
+      class TestService {}
+      services.addSingleton(token, TestService);
+      services.remove(token);
+      const provider = services.buildServiceProvider();
+      expect(provider.getService(token)).resolves.toBeUndefined();
+    });
+
+    it('should allow method chaining', () => {
+      const services = new ServiceCollection();
+      const token1 = Symbol('Test1');
+      const token2 = Symbol('Test2');
+      services.addSingleton(token1);
+      services.addSingleton(token2);
+      const result = services.remove(token1).remove(token2);
+      expect(result).toBe(services);
+    });
+
+    it('should remove all registrations for a token', async () => {
+      const services = new ServiceCollection();
+      const token = Symbol('Test');
+      class TestService1 {}
+      class TestService2 {}
+      services.addSingleton(token, TestService1);
+      services.addSingleton(token, TestService2);
+      services.remove(token);
+      const provider = services.buildServiceProvider();
+      const instance = await provider.getService(token);
+      expect(instance).toBeUndefined();
+    });
+  });
+
+  describe('removeAll', () => {
+    it('should remove all service registrations (alias for remove)', () => {
+      const services = new ServiceCollection();
+      const token = Symbol('Test');
+      class TestService {}
+      services.addSingleton(token, TestService);
+      services.removeAll(token);
+      const provider = services.buildServiceProvider();
+      expect(provider.getService(token)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('replace', () => {
+    it('should replace singleton service with new implementation', async () => {
+      const services = new ServiceCollection();
+      const token = Symbol('Test');
+      class OldService {
+        value = 'old';
+      }
+      class NewService {
+        value = 'new';
+      }
+      services.addSingleton(token, OldService);
+      services.replace(token, NewService);
+      const provider = services.buildServiceProvider();
+      const instance = await provider.getRequiredService<NewService>(token);
+      expect(instance).toBeInstanceOf(NewService);
+      expect(instance.value).toBe('new');
+    });
+
+    it('should replace scoped service with new implementation', async () => {
+      const services = new ServiceCollection();
+      const token = Symbol('Test');
+      class OldService {
+        value = 'old';
+      }
+      class NewService {
+        value = 'new';
+      }
+      services.addScoped(token, OldService);
+      services.replace(token, NewService);
+      const provider = services.buildServiceProvider();
+      const scope = provider.createScope();
+      const instance = await scope.getRequiredService<NewService>(token);
+      expect(instance).toBeInstanceOf(NewService);
+      expect(instance.value).toBe('new');
+    });
+
+    it('should replace service with factory', async () => {
+      const services = new ServiceCollection();
+      const token = Symbol('Test');
+      class OldService {
+        value = 'old';
+      }
+      const factory: ServiceFactory<{ value: string }> = () => ({ value: 'factory' });
+      services.addSingleton(token, OldService);
+      services.replace(token, factory);
+      const provider = services.buildServiceProvider();
+      const instance = await provider.getRequiredService<{ value: string }>(token);
+      expect(instance.value).toBe('factory');
+    });
+
+    it('should maintain lifetime when replacing', async () => {
+      const services = new ServiceCollection();
+      const token = Symbol('Test');
+      class OldService {
+        value = 'old';
+      }
+      class NewService {
+        value = 'new';
+      }
+      services.addScoped(token, OldService);
+      services.replace(token, NewService);
+      const provider = services.buildServiceProvider();
+      const scope = provider.createScope();
+      const instance1 = await scope.getRequiredService<NewService>(token);
+      const instance2 = await scope.getRequiredService<NewService>(token);
+      // Same instance within scope (scoped lifetime maintained)
+      expect(instance1).toBe(instance2);
+      // Should be NewService instance (replaced implementation)
+      expect(instance1).toBeInstanceOf(NewService);
+      // Verify it has the expected value
+      expect(instance1.value).toBe('new');
+      // Verify that the old implementation is not used
+      expect(instance1).not.toBeInstanceOf(OldService);
+    });
+
+    it('should replace with dependencies', async () => {
+      const services = new ServiceCollection();
+      const token1 = Symbol('Test1');
+      const token2 = Symbol('Test2');
+      class Dependency {
+        value = 'dependency';
+      }
+      class OldService {
+        constructor(public dep: any) {}
+      }
+      class NewService {
+        constructor(public dep: any) {}
+        value = 'new';
+      }
+      services.addSingleton(token1, Dependency);
+      services.addSingleton(token2, OldService, [token1]);
+      services.replace(token2, NewService, [token1]);
+      const provider = services.buildServiceProvider();
+      const instance = await provider.getRequiredService<NewService>(token2);
+      expect(instance).toBeInstanceOf(NewService);
+      expect(instance.dep).toBeInstanceOf(Dependency);
     });
   });
 });
@@ -373,6 +586,72 @@ describe('ServiceProvider', () => {
       const provider = services.buildServiceProvider();
       const instance = await provider.getKeyedService(token, 'key1');
       expect(instance).toBeInstanceOf(TestService);
+    });
+  });
+
+  describe('getRequiredKeyedService', () => {
+    it('should return keyed service instance', async () => {
+      const services = new ServiceCollection();
+      const token = Symbol('Test');
+      class TestService {
+        value = 'test';
+      }
+      services.addKeyedSingleton(token, TestService, 'key1');
+      const provider = services.buildServiceProvider();
+      const instance = await provider.getRequiredKeyedService<TestService>(token, 'key1');
+      expect(instance).toBeInstanceOf(TestService);
+      expect(instance.value).toBe('test');
+    });
+
+    it('should throw error for unregistered keyed service', async () => {
+      const services = new ServiceCollection();
+      const token = Symbol('Test');
+      const provider = services.buildServiceProvider();
+      await expect(provider.getRequiredKeyedService(token, 'key1')).rejects.toThrow(
+        'No provider found for keyed service',
+      );
+    });
+
+    it('should throw error for wrong key', async () => {
+      const services = new ServiceCollection();
+      const token = Symbol('Test');
+      class TestService {}
+      services.addKeyedSingleton(token, TestService, 'key1');
+      const provider = services.buildServiceProvider();
+      await expect(provider.getRequiredKeyedService(token, 'key2')).rejects.toThrow(
+        'No provider found for keyed service',
+      );
+    });
+  });
+
+  describe('isService', () => {
+    it('should return true for registered service', async () => {
+      const services = new ServiceCollection();
+      const token = Symbol('Test');
+      class TestService {}
+      services.addSingleton(token, TestService);
+      const provider = services.buildServiceProvider();
+      const exists = await provider.isService(token);
+      expect(exists).toBe(true);
+    });
+
+    it('should return false for unregistered service', async () => {
+      const services = new ServiceCollection();
+      const token = Symbol('Test');
+      const provider = services.buildServiceProvider();
+      const exists = await provider.isService(token);
+      expect(exists).toBe(false);
+    });
+
+    it('should return false after dispose', async () => {
+      const services = new ServiceCollection();
+      const token = Symbol('Test');
+      class TestService {}
+      services.addSingleton(token, TestService);
+      const provider = services.buildServiceProvider();
+      await provider.dispose();
+      const exists = await provider.isService(token);
+      expect(exists).toBe(false);
     });
   });
 
@@ -879,7 +1158,7 @@ describe('ServiceProvider', () => {
     it('should use factory function', async () => {
       const services = new ServiceCollection();
       const token = Symbol('Test');
-      const factory: ServiceFactory = (provider) => {
+      const factory: ServiceFactory<{ created: boolean; provider: ServiceProvider }> = (provider) => {
         return { created: true, provider };
       };
       services.addSingleton(token, factory);
@@ -892,7 +1171,7 @@ describe('ServiceProvider', () => {
     it('should support async factory', async () => {
       const services = new ServiceCollection();
       const token = Symbol('Test');
-      const factory: ServiceFactory = async (provider) => {
+      const factory: ServiceFactory<{ async: boolean }> = async (provider) => {
         await new Promise((resolve) => setTimeout(resolve, 10));
         return { async: true };
       };
@@ -1432,7 +1711,7 @@ describe('ServiceProvider', () => {
       const scopedToken = Symbol('Scoped');
       const singletonToken = Symbol('Singleton');
       class ScopedService {}
-      const factory: ServiceFactory = (provider) => {
+      const factory: ServiceFactory<ScopedService> = (provider) => {
         return provider.getRequiredService(scopedToken);
       };
       services.addScoped(scopedToken, ScopedService);

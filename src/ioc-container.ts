@@ -1,27 +1,30 @@
-export enum ServiceLifetime {
-  Singleton = 'SINGLETON',
-  Scoped = 'SCOPED',
-  Transient = 'TRANSIENT',
-}
+import {
+  ServiceLifetime,
+  type Token,
+  type Newable,
+  type ServiceFactory,
+  type ServiceDescriptor,
+  type DependencyTreeNode,
+  type CircularDependency,
+  type LifecycleHooks,
+} from './types';
 
-export type Token<T = any> = string | symbol | Newable<T>;
-export type Newable<T = any> = { new (...args: any[]): T };
-
-export type ServiceFactory<T = any> = (provider: ServiceProvider) => T | Promise<T>;
-
-export interface ServiceDescriptor<T = any> {
-  token: Token<T>;
-  lifetime: ServiceLifetime;
-  implementation?: Newable<T>;
-  factory?: ServiceFactory<T>;
-  value?: T;
-  dependencies?: Token[];
-  key?: string | symbol; // For keyed services
-}
-
+/**
+ * Service collection for registering and managing service descriptors.
+ * This class provides methods to register services with different lifetimes
+ * (Singleton, Scoped, Transient) and build a ServiceProvider.
+ *
+ * @example
+ * ```typescript
+ * const services = new ServiceCollection();
+ * services.addSingleton(ILogger, Logger);
+ * services.addScoped(IUserService, UserService, [ILogger]);
+ * const provider = services.buildServiceProvider();
+ * ```
+ */
 export class ServiceCollection {
   private readonly descriptors = new Map<Token, ServiceDescriptor[]>();
-  private readonly tokenMap = new Map<Token, Newable>();
+  private readonly tokenMap = new Map<Token, Newable<unknown>>();
   private readonly keyedDescriptors = new Map<string | symbol, Map<Token, ServiceDescriptor>>();
 
   private addDescriptor(descriptor: ServiceDescriptor): this {
@@ -53,17 +56,63 @@ export class ServiceCollection {
     return descriptors && descriptors.length > 0 ? descriptors[descriptors.length - 1] : undefined;
   }
 
+  /**
+   * Removes all registrations for the specified token.
+   *
+   * @template T The service type
+   * @param token - The service token to remove
+   * @returns This instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * services.remove(ILogger);
+   * ```
+   */
   remove<T>(token: Token<T>): this {
     this.descriptors.delete(token);
     this.tokenMap.delete(token);
     return this;
   }
 
+  /**
+   * Alias for {@link remove}. Removes all registrations for the specified token.
+   *
+   * @template T The service type
+   * @param token - The service token to remove
+   * @returns This instance for method chaining
+   */
   removeAll<T>(token: Token<T>): this {
     return this.remove(token);
   }
 
+  /**
+   * Replaces an existing service registration with a new implementation or factory.
+   * The new registration will use the same lifetime as the previous registration (defaults to Singleton).
+   *
+   * @template T The service type
+   * @param token - The service token to replace
+   * @param implementation - The new implementation class
+   * @param dependencies - Optional array of dependency tokens (required if constructor has parameters)
+   * @returns This instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * // Replace with new implementation
+   * services.replace(ILogger, NewLogger);
+   *
+   * // Replace with factory
+   * services.replace(ILogger, (provider) => new Logger());
+   * ```
+   */
   replace<T>(token: Token<T>, implementation: Newable<T>, dependencies?: Token[]): this;
+  /**
+   * Replaces an existing service registration with a factory function.
+   *
+   * @template T The service type
+   * @param token - The service token to replace
+   * @param factory - The factory function that creates the service instance
+   * @returns This instance for method chaining
+   */
   replace<T>(token: Token<T>, factory: ServiceFactory<T>): this;
   replace<T>(token: Token<T>, implementationOrFactory: Newable<T> | ServiceFactory<T>, dependencies?: Token[]): this {
     // Remove existing
@@ -97,17 +146,21 @@ export class ServiceCollection {
     return this.descriptors.has(token) && (this.descriptors.get(token)?.length ?? 0) > 0;
   }
 
-  // Overloads for addSingleton
-  addSingleton<T>(token: Token<T>): this;
-  addSingleton<T>(token: Token<T>, dependencies: Token[]): this;
-  addSingleton<T>(token: Token<T>, implementation: Newable<T>): this;
-  addSingleton<T>(token: Token<T>, implementation: Newable<T>, dependencies: Token[]): this;
-  addSingleton<T>(token: Token<T>, factory: ServiceFactory<T>): this;
-  addSingleton<T>(
+  /**
+   * Parses the registration parameters to extract implementation, factory, and dependencies.
+   * This helper method eliminates code duplication across add* and tryAdd* methods.
+   */
+  private parseRegistrationParams<T>(
     token: Token<T>,
     implementationOrDependencies?: Newable<T> | Token[] | ServiceFactory<T>,
     dependencies?: Token[],
-  ): this {
+  ): {
+    implementation: Newable<T> | undefined;
+    factory: ServiceFactory<T> | undefined;
+    dependencies: Token[] | undefined;
+    finalImplementation: Newable<T> | undefined;
+    finalDependencies: Token[] | undefined;
+  } {
     let implementation: Newable<T> | undefined;
     let factory: ServiceFactory<T> | undefined;
     let deps: Token[] | undefined;
@@ -127,100 +180,306 @@ export class ServiceCollection {
       deps = dependencies;
     }
 
-    const impl = implementation ?? (factory ? undefined : (token as Newable<T>));
+    const finalImplementation = implementation ?? (factory ? undefined : (token as Newable<T>));
     // If implementation exists and dependencies is undefined, default to empty array
-    const finalDeps = impl && deps === undefined ? [] : deps;
+    const finalDeps = finalImplementation && deps === undefined ? [] : deps;
+
+    return {
+      implementation,
+      factory,
+      dependencies: deps,
+      finalImplementation,
+      finalDependencies: finalDeps,
+    };
+  }
+
+  /**
+   * Internal helper to register a service with a specific lifetime.
+   * This eliminates code duplication across addSingleton, addScoped, and addTransient.
+   */
+  private registerService<T>(
+    token: Token<T>,
+    lifetime: ServiceLifetime,
+    implementationOrDependencies?: Newable<T> | Token[] | ServiceFactory<T>,
+    dependencies?: Token[],
+  ): this {
+    const { finalImplementation, factory, finalDependencies } = this.parseRegistrationParams(
+      token,
+      implementationOrDependencies,
+      dependencies,
+    );
+
     this.addDescriptor({
       token,
-      lifetime: ServiceLifetime.Singleton,
-      implementation: impl,
+      lifetime,
+      implementation: finalImplementation,
       factory,
-      dependencies: finalDeps,
+      dependencies: finalDependencies,
+    });
+
+    return this;
+  }
+
+  /**
+   * Internal helper to register a service with tryAdd pattern (only if not already registered).
+   * This eliminates code duplication across tryAddSingleton, tryAddScoped, and tryAddTransient.
+   */
+  private tryRegisterService<T>(
+    token: Token<T>,
+    lifetime: ServiceLifetime,
+    implementationOrDependencies?: Newable<T> | Token[] | ServiceFactory<T>,
+    dependencies?: Token[],
+  ): this {
+    if (this.hasDescriptor(token)) return this;
+
+    const {
+      finalImplementation,
+      factory,
+      dependencies: deps,
+    } = this.parseRegistrationParams(token, implementationOrDependencies, dependencies);
+
+    this.addDescriptor({
+      token,
+      lifetime,
+      implementation: finalImplementation,
+      factory,
+      dependencies: deps,
+    });
+
+    return this;
+  }
+
+  /**
+   * Internal helper to register a keyed service with a specific lifetime.
+   * This eliminates code duplication across addKeyedSingleton, addKeyedScoped, and addKeyedTransient.
+   */
+  private registerKeyedService<T>(
+    token: Token<T>,
+    lifetime: ServiceLifetime,
+    implementationOrFactory: Newable<T> | ServiceFactory<T>,
+    key: string | symbol,
+  ): this {
+    const isFactory = typeof implementationOrFactory === 'function' && !implementationOrFactory.prototype;
+    this.addDescriptor({
+      token,
+      lifetime,
+      implementation: isFactory ? undefined : (implementationOrFactory as Newable<T>),
+      factory: isFactory ? (implementationOrFactory as ServiceFactory<T>) : undefined,
+      key,
     });
     return this;
   }
 
-  // Overloads for addScoped
+  /**
+   * Registers a service as a singleton. A single instance will be created and reused for all requests.
+   *
+   * @template T The service type
+   * @param token - The service token (class constructor, string, or symbol)
+   * @returns This instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * // Register class as singleton (token is the class itself)
+   * services.addSingleton(Logger);
+   *
+   * // Register with dependencies
+   * services.addSingleton(Logger, [IConfig]);
+   * ```
+   */
+  addSingleton<T>(token: Token<T>): this;
+  /**
+   * Registers a service as a singleton with explicit dependencies.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param dependencies - Array of dependency tokens (required if constructor has parameters)
+   * @returns This instance for method chaining
+   */
+  addSingleton<T>(token: Token<T>, dependencies: Token[]): this;
+  /**
+   * Registers a service as a singleton with a specific implementation.
+   *
+   * @template T The service type
+   * @param token - The service token (interface or abstract class)
+   * @param implementation - The concrete implementation class
+   * @returns This instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * services.addSingleton(ILogger, Logger);
+   * ```
+   */
+  addSingleton<T>(token: Token<T>, implementation: Newable<T>): this;
+  /**
+   * Registers a service as a singleton with implementation and dependencies.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param implementation - The concrete implementation class
+   * @param dependencies - Array of dependency tokens (required if constructor has parameters)
+   * @returns This instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * services.addSingleton(IUserService, UserService, [ILogger, IDatabase]);
+   * ```
+   */
+  addSingleton<T>(token: Token<T>, implementation: Newable<T>, dependencies: Token[]): this;
+  /**
+   * Registers a service as a singleton using a factory function.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param factory - Factory function that creates the service instance
+   * @returns This instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * services.addSingleton(ILogger, (provider) => new Logger(provider.getRequiredService(IConfig)));
+   * ```
+   */
+  addSingleton<T>(token: Token<T>, factory: ServiceFactory<T>): this;
+  addSingleton<T>(
+    token: Token<T>,
+    implementationOrDependencies?: Newable<T> | Token[] | ServiceFactory<T>,
+    dependencies?: Token[],
+  ): this {
+    return this.registerService(token, ServiceLifetime.Singleton, implementationOrDependencies, dependencies);
+  }
+
+  /**
+   * Registers a service as scoped. A new instance is created per scope (e.g., per HTTP request).
+   * The same instance is reused within the same scope.
+   *
+   * @template T The service type
+   * @param token - The service token (class constructor, string, or symbol)
+   * @returns This instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * services.addScoped(UserService);
+   * const scope = provider.createScope();
+   * const userService = await scope.getRequiredService(UserService);
+   * ```
+   */
   addScoped<T>(token: Token<T>): this;
+  /**
+   * Registers a scoped service with explicit dependencies.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param dependencies - Array of dependency tokens (required if constructor has parameters)
+   * @returns This instance for method chaining
+   */
   addScoped<T>(token: Token<T>, dependencies: Token[]): this;
+  /**
+   * Registers a scoped service with a specific implementation.
+   *
+   * @template T The service type
+   * @param token - The service token (interface or abstract class)
+   * @param implementation - The concrete implementation class
+   * @returns This instance for method chaining
+   */
   addScoped<T>(token: Token<T>, implementation: Newable<T>): this;
+  /**
+   * Registers a scoped service with implementation and dependencies.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param implementation - The concrete implementation class
+   * @param dependencies - Array of dependency tokens (required if constructor has parameters)
+   * @returns This instance for method chaining
+   */
   addScoped<T>(token: Token<T>, implementation: Newable<T>, dependencies: Token[]): this;
+  /**
+   * Registers a scoped service using a factory function.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param factory - Factory function that creates the service instance
+   * @returns This instance for method chaining
+   */
   addScoped<T>(token: Token<T>, factory: ServiceFactory<T>): this;
   addScoped<T>(
     token: Token<T>,
     implementationOrDependencies?: Newable<T> | Token[] | ServiceFactory<T>,
     dependencies?: Token[],
   ): this {
-    let implementation: Newable<T> | undefined;
-    let factory: ServiceFactory<T> | undefined;
-    let deps: Token[] | undefined;
-
-    // Determine if second parameter is dependencies array, implementation, or factory
-    if (Array.isArray(implementationOrDependencies)) {
-      deps = implementationOrDependencies;
-      implementation = undefined;
-    } else if (typeof implementationOrDependencies === 'function' && !implementationOrDependencies.prototype) {
-      factory = implementationOrDependencies as ServiceFactory<T>;
-      implementation = undefined;
-    } else {
-      implementation = implementationOrDependencies as Newable<T> | undefined;
-      deps = dependencies;
-    }
-
-    const impl = implementation ?? (factory ? undefined : (token as Newable<T>));
-    // If implementation exists and dependencies is undefined, default to empty array
-    const finalDeps = impl && deps === undefined ? [] : deps;
-    this.addDescriptor({
-      token,
-      lifetime: ServiceLifetime.Scoped,
-      implementation: impl,
-      factory,
-      dependencies: finalDeps,
-    });
-    return this;
+    return this.registerService(token, ServiceLifetime.Scoped, implementationOrDependencies, dependencies);
   }
 
-  // Overloads for addTransient
+  /**
+   * Registers a service as transient. A new instance is created every time the service is requested.
+   *
+   * @template T The service type
+   * @param token - The service token (class constructor, string, or symbol)
+   * @returns This instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * services.addTransient(EmailService);
+   * // Each call to getService creates a new instance
+   * ```
+   */
   addTransient<T>(token: Token<T>): this;
+  /**
+   * Registers a transient service with explicit dependencies.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param dependencies - Array of dependency tokens (required if constructor has parameters)
+   * @returns This instance for method chaining
+   */
   addTransient<T>(token: Token<T>, dependencies: Token[]): this;
+  /**
+   * Registers a transient service with a specific implementation.
+   *
+   * @template T The service type
+   * @param token - The service token (interface or abstract class)
+   * @param implementation - The concrete implementation class
+   * @returns This instance for method chaining
+   */
   addTransient<T>(token: Token<T>, implementation: Newable<T>): this;
+  /**
+   * Registers a transient service with implementation and dependencies.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param implementation - The concrete implementation class
+   * @param dependencies - Array of dependency tokens (required if constructor has parameters)
+   * @returns This instance for method chaining
+   */
   addTransient<T>(token: Token<T>, implementation: Newable<T>, dependencies: Token[]): this;
+  /**
+   * Registers a transient service using a factory function.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param factory - Factory function that creates the service instance
+   * @returns This instance for method chaining
+   */
   addTransient<T>(token: Token<T>, factory: ServiceFactory<T>): this;
   addTransient<T>(
     token: Token<T>,
     implementationOrDependencies?: Newable<T> | Token[] | ServiceFactory<T>,
     dependencies?: Token[],
   ): this {
-    let implementation: Newable<T> | undefined;
-    let factory: ServiceFactory<T> | undefined;
-    let deps: Token[] | undefined;
-
-    // Determine if second parameter is dependencies array, implementation, or factory
-    if (Array.isArray(implementationOrDependencies)) {
-      deps = implementationOrDependencies;
-      implementation = undefined;
-    } else if (typeof implementationOrDependencies === 'function' && !implementationOrDependencies.prototype) {
-      factory = implementationOrDependencies as ServiceFactory<T>;
-      implementation = undefined;
-    } else {
-      implementation = implementationOrDependencies as Newable<T> | undefined;
-      deps = dependencies;
-    }
-
-    const impl = implementation ?? (factory ? undefined : (token as Newable<T>));
-    // If implementation exists and dependencies is undefined, default to empty array
-    const finalDeps = impl && deps === undefined ? [] : deps;
-    this.addDescriptor({
-      token,
-      lifetime: ServiceLifetime.Transient,
-      implementation: impl,
-      factory,
-      dependencies: finalDeps,
-    });
-    return this;
+    return this.registerService(token, ServiceLifetime.Transient, implementationOrDependencies, dependencies);
   }
 
-  // Value registration methods
+  /**
+   * Registers a pre-created value instance. Values are always treated as singletons.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param value - The pre-created instance to register
+   * @returns This instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * services.addValue(IConfig, { apiKey: '123', baseUrl: 'https://api.example.com' });
+   * ```
+   */
   addValue<T>(token: Token<T>, value: T): this {
     this.addDescriptor({
       token,
@@ -230,177 +489,280 @@ export class ServiceCollection {
     return this;
   }
 
-  // TryAdd methods - only register if not already registered
+  /**
+   * Attempts to register a service as singleton only if it's not already registered.
+   * This is useful for conditional registration scenarios.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @returns This instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * // Only register if not already registered
+   * services.tryAddSingleton(ILogger, Logger);
+   * ```
+   */
   tryAddSingleton<T>(token: Token<T>): this;
+  /**
+   * Attempts to register a singleton service with dependencies.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param dependencies - Array of dependency tokens
+   * @returns This instance for method chaining
+   */
   tryAddSingleton<T>(token: Token<T>, dependencies: Token[]): this;
+  /**
+   * Attempts to register a singleton service with implementation.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param implementation - The concrete implementation class
+   * @returns This instance for method chaining
+   */
   tryAddSingleton<T>(token: Token<T>, implementation: Newable<T>): this;
+  /**
+   * Attempts to register a singleton service with implementation and dependencies.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param implementation - The concrete implementation class
+   * @param dependencies - Array of dependency tokens
+   * @returns This instance for method chaining
+   */
   tryAddSingleton<T>(token: Token<T>, implementation: Newable<T>, dependencies: Token[]): this;
+  /**
+   * Attempts to register a singleton service using a factory function.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param factory - Factory function that creates the service instance
+   * @returns This instance for method chaining
+   */
   tryAddSingleton<T>(token: Token<T>, factory: ServiceFactory<T>): this;
   tryAddSingleton<T>(
     token: Token<T>,
     implementationOrDependencies?: Newable<T> | Token[] | ServiceFactory<T>,
     dependencies?: Token[],
   ): this {
-    if (this.hasDescriptor(token)) return this;
-
-    // Manually handle registration to avoid overload resolution issues
-    let implementation: Newable<T> | undefined;
-    let factory: ServiceFactory<T> | undefined;
-    let deps: Token[] | undefined;
-
-    if (Array.isArray(implementationOrDependencies)) {
-      deps = implementationOrDependencies;
-      implementation = undefined;
-    } else if (typeof implementationOrDependencies === 'function' && !implementationOrDependencies.prototype) {
-      factory = implementationOrDependencies as ServiceFactory<T>;
-      implementation = undefined;
-    } else {
-      implementation = implementationOrDependencies as Newable<T> | undefined;
-      deps = dependencies;
-    }
-
-    const impl = implementation ?? (factory ? undefined : (token as Newable<T>));
-    this.addDescriptor({
-      token,
-      lifetime: ServiceLifetime.Singleton,
-      implementation: impl,
-      factory,
-      dependencies: deps,
-    });
-    return this;
+    return this.tryRegisterService(token, ServiceLifetime.Singleton, implementationOrDependencies, dependencies);
   }
 
+  /**
+   * Attempts to register a service as scoped only if it's not already registered.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @returns This instance for method chaining
+   */
   tryAddScoped<T>(token: Token<T>): this;
+  /**
+   * Attempts to register a scoped service with dependencies.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param dependencies - Array of dependency tokens
+   * @returns This instance for method chaining
+   */
   tryAddScoped<T>(token: Token<T>, dependencies: Token[]): this;
+  /**
+   * Attempts to register a scoped service with implementation.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param implementation - The concrete implementation class
+   * @returns This instance for method chaining
+   */
   tryAddScoped<T>(token: Token<T>, implementation: Newable<T>): this;
+  /**
+   * Attempts to register a scoped service with implementation and dependencies.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param implementation - The concrete implementation class
+   * @param dependencies - Array of dependency tokens
+   * @returns This instance for method chaining
+   */
   tryAddScoped<T>(token: Token<T>, implementation: Newable<T>, dependencies: Token[]): this;
+  /**
+   * Attempts to register a scoped service using a factory function.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param factory - Factory function that creates the service instance
+   * @returns This instance for method chaining
+   */
   tryAddScoped<T>(token: Token<T>, factory: ServiceFactory<T>): this;
   tryAddScoped<T>(
     token: Token<T>,
     implementationOrDependencies?: Newable<T> | Token[] | ServiceFactory<T>,
     dependencies?: Token[],
   ): this {
-    if (this.hasDescriptor(token)) return this;
-
-    let implementation: Newable<T> | undefined;
-    let factory: ServiceFactory<T> | undefined;
-    let deps: Token[] | undefined;
-
-    if (Array.isArray(implementationOrDependencies)) {
-      deps = implementationOrDependencies;
-      implementation = undefined;
-    } else if (typeof implementationOrDependencies === 'function' && !implementationOrDependencies.prototype) {
-      factory = implementationOrDependencies as ServiceFactory<T>;
-      implementation = undefined;
-    } else {
-      implementation = implementationOrDependencies as Newable<T> | undefined;
-      deps = dependencies;
-    }
-
-    const impl = implementation ?? (factory ? undefined : (token as Newable<T>));
-    this.addDescriptor({
-      token,
-      lifetime: ServiceLifetime.Scoped,
-      implementation: impl,
-      factory,
-      dependencies: deps,
-    });
-    return this;
+    return this.tryRegisterService(token, ServiceLifetime.Scoped, implementationOrDependencies, dependencies);
   }
 
+  /**
+   * Attempts to register a service as transient only if it's not already registered.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @returns This instance for method chaining
+   */
   tryAddTransient<T>(token: Token<T>): this;
+  /**
+   * Attempts to register a transient service with dependencies.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param dependencies - Array of dependency tokens
+   * @returns This instance for method chaining
+   */
   tryAddTransient<T>(token: Token<T>, dependencies: Token[]): this;
+  /**
+   * Attempts to register a transient service with implementation.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param implementation - The concrete implementation class
+   * @returns This instance for method chaining
+   */
   tryAddTransient<T>(token: Token<T>, implementation: Newable<T>): this;
+  /**
+   * Attempts to register a transient service with implementation and dependencies.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param implementation - The concrete implementation class
+   * @param dependencies - Array of dependency tokens
+   * @returns This instance for method chaining
+   */
   tryAddTransient<T>(token: Token<T>, implementation: Newable<T>, dependencies: Token[]): this;
+  /**
+   * Attempts to register a transient service using a factory function.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param factory - Factory function that creates the service instance
+   * @returns This instance for method chaining
+   */
   tryAddTransient<T>(token: Token<T>, factory: ServiceFactory<T>): this;
   tryAddTransient<T>(
     token: Token<T>,
     implementationOrDependencies?: Newable<T> | Token[] | ServiceFactory<T>,
     dependencies?: Token[],
   ): this {
-    if (this.hasDescriptor(token)) return this;
-
-    let implementation: Newable<T> | undefined;
-    let factory: ServiceFactory<T> | undefined;
-    let deps: Token[] | undefined;
-
-    if (Array.isArray(implementationOrDependencies)) {
-      deps = implementationOrDependencies;
-      implementation = undefined;
-    } else if (typeof implementationOrDependencies === 'function' && !implementationOrDependencies.prototype) {
-      factory = implementationOrDependencies as ServiceFactory<T>;
-      implementation = undefined;
-    } else {
-      implementation = implementationOrDependencies as Newable<T> | undefined;
-      deps = dependencies;
-    }
-
-    const impl = implementation ?? (factory ? undefined : (token as Newable<T>));
-    this.addDescriptor({
-      token,
-      lifetime: ServiceLifetime.Transient,
-      implementation: impl,
-      factory,
-      dependencies: deps,
-    });
-    return this;
+    return this.tryRegisterService(token, ServiceLifetime.Transient, implementationOrDependencies, dependencies);
   }
 
-  // Keyed services
+  /**
+   * Registers a keyed service as singleton. Keyed services allow multiple implementations
+   * of the same token to be registered with different keys.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param implementation - The concrete implementation class
+   * @param key - The key to identify this specific implementation
+   * @returns This instance for method chaining
+   *
+   * @example
+   * ```typescript
+   * services.addKeyedSingleton(ILogger, FileLogger, 'file');
+   * services.addKeyedSingleton(ILogger, ConsoleLogger, 'console');
+   * const logger = await provider.getKeyedService(ILogger, 'file');
+   * ```
+   */
   addKeyedSingleton<T>(token: Token<T>, implementation: Newable<T>, key: string | symbol): this;
+  /**
+   * Registers a keyed singleton service using a factory function.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param factory - Factory function that creates the service instance
+   * @param key - The key to identify this specific implementation
+   * @returns This instance for method chaining
+   */
   addKeyedSingleton<T>(token: Token<T>, factory: ServiceFactory<T>, key: string | symbol): this;
   addKeyedSingleton<T>(
     token: Token<T>,
     implementationOrFactory: Newable<T> | ServiceFactory<T>,
     key: string | symbol,
   ): this {
-    const isFactory = typeof implementationOrFactory === 'function' && !implementationOrFactory.prototype;
-    this.addDescriptor({
-      token,
-      lifetime: ServiceLifetime.Singleton,
-      implementation: isFactory ? undefined : (implementationOrFactory as Newable<T>),
-      factory: isFactory ? (implementationOrFactory as ServiceFactory<T>) : undefined,
-      key,
-    });
-    return this;
+    return this.registerKeyedService(token, ServiceLifetime.Singleton, implementationOrFactory, key);
   }
 
+  /**
+   * Registers a keyed service as scoped.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param implementation - The concrete implementation class
+   * @param key - The key to identify this specific implementation
+   * @returns This instance for method chaining
+   */
   addKeyedScoped<T>(token: Token<T>, implementation: Newable<T>, key: string | symbol): this;
+  /**
+   * Registers a keyed scoped service using a factory function.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param factory - Factory function that creates the service instance
+   * @param key - The key to identify this specific implementation
+   * @returns This instance for method chaining
+   */
   addKeyedScoped<T>(token: Token<T>, factory: ServiceFactory<T>, key: string | symbol): this;
   addKeyedScoped<T>(
     token: Token<T>,
     implementationOrFactory: Newable<T> | ServiceFactory<T>,
     key: string | symbol,
   ): this {
-    const isFactory = typeof implementationOrFactory === 'function' && !implementationOrFactory.prototype;
-    this.addDescriptor({
-      token,
-      lifetime: ServiceLifetime.Scoped,
-      implementation: isFactory ? undefined : (implementationOrFactory as Newable<T>),
-      factory: isFactory ? (implementationOrFactory as ServiceFactory<T>) : undefined,
-      key,
-    });
-    return this;
+    return this.registerKeyedService(token, ServiceLifetime.Scoped, implementationOrFactory, key);
   }
 
+  /**
+   * Registers a keyed service as transient.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param implementation - The concrete implementation class
+   * @param key - The key to identify this specific implementation
+   * @returns This instance for method chaining
+   */
   addKeyedTransient<T>(token: Token<T>, implementation: Newable<T>, key: string | symbol): this;
+  /**
+   * Registers a keyed transient service using a factory function.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param factory - Factory function that creates the service instance
+   * @param key - The key to identify this specific implementation
+   * @returns This instance for method chaining
+   */
   addKeyedTransient<T>(token: Token<T>, factory: ServiceFactory<T>, key: string | symbol): this;
   addKeyedTransient<T>(
     token: Token<T>,
     implementationOrFactory: Newable<T> | ServiceFactory<T>,
     key: string | symbol,
   ): this {
-    const isFactory = typeof implementationOrFactory === 'function' && !implementationOrFactory.prototype;
-    this.addDescriptor({
-      token,
-      lifetime: ServiceLifetime.Transient,
-      implementation: isFactory ? undefined : (implementationOrFactory as Newable<T>),
-      factory: isFactory ? (implementationOrFactory as ServiceFactory<T>) : undefined,
-      key,
-    });
-    return this;
+    return this.registerKeyedService(token, ServiceLifetime.Transient, implementationOrFactory, key);
   }
 
+  /**
+   * Builds a ServiceProvider from the registered service descriptors.
+   *
+   * @param options - Optional configuration options
+   * @param options.validateScopes - If true, validates that scoped services are not resolved from root provider (default: false)
+   * @param options.validateOnBuild - If true, validates all dependencies are registered at build time (default: false)
+   * @returns A new ServiceProvider instance
+   *
+   * @example
+   * ```typescript
+   * const provider = services.buildServiceProvider({
+   *   validateScopes: true,
+   *   validateOnBuild: true
+   * });
+   * ```
+   */
   buildServiceProvider(options?: { validateScopes?: boolean; validateOnBuild?: boolean }): ServiceProvider {
     const provider = new ServiceProvider(
       this.descriptors,
@@ -457,9 +819,18 @@ export class ServiceCollection {
   }
 
   /**
-   * Get dependency tree for a specific token
-   * @param token The service token to analyze
-   * @returns A tree structure showing all dependencies
+   * Gets the dependency tree for a specific service token.
+   * This method analyzes all dependencies recursively and detects circular dependencies.
+   *
+   * @param token - The service token to analyze
+   * @returns A tree structure showing all dependencies, their lifetimes, and circular dependency information
+   *
+   * @example
+   * ```typescript
+   * const tree = services.getDependencyTree(IUserService);
+   * console.log(tree.name); // "IUserService"
+   * console.log(tree.dependencies); // Array of dependency nodes
+   * ```
    */
   getDependencyTree(token: Token): DependencyTreeNode {
     const visited = new Set<Token>();
@@ -508,8 +879,18 @@ export class ServiceCollection {
   }
 
   /**
-   * Find all circular dependencies in the service collection
-   * @returns Array of circular dependency paths
+   * Finds all circular dependencies in the service collection.
+   * Scans all registered services and their dependencies to detect circular reference patterns.
+   *
+   * @returns Array of circular dependency paths, each containing the tokens involved in the cycle
+   *
+   * @example
+   * ```typescript
+   * const circularDeps = services.getCircularDependencies();
+   * if (circularDeps.length > 0) {
+   *   console.log('Found circular dependencies:', circularDeps);
+   * }
+   * ```
    */
   getCircularDependencies(): CircularDependency[] {
     const circularDeps: CircularDependency[] = [];
@@ -556,9 +937,21 @@ export class ServiceCollection {
   }
 
   /**
-   * Visualize dependency tree as a string
-   * @param token The service token to visualize
-   * @returns Formatted string representation of the dependency tree
+   * Visualizes the dependency tree as a formatted string.
+   * Creates a tree-like text representation showing the service hierarchy and dependencies.
+   *
+   * @param token - The service token to visualize
+   * @returns A formatted string representation of the dependency tree with tree characters (├──, └──)
+   *
+   * @example
+   * ```typescript
+   * const visualization = services.visualizeDependencyTree(IUserService);
+   * console.log(visualization);
+   * // Output:
+   * // └── IUserService [SINGLETON]
+   * //     ├── ILogger [SINGLETON]
+   * //     └── IDatabase [SINGLETON]
+   * ```
    */
   visualizeDependencyTree(token: Token): string {
     const tree = this.getDependencyTree(token);
@@ -581,8 +974,21 @@ export class ServiceCollection {
   }
 
   /**
-   * Visualize all circular dependencies as a string
-   * @returns Formatted string representation of circular dependencies
+   * Visualizes all circular dependencies as a formatted string.
+   * Creates a human-readable representation of all detected circular dependency cycles.
+   *
+   * @returns A formatted string listing all circular dependencies, or a message if none are found
+   *
+   * @example
+   * ```typescript
+   * const visualization = services.visualizeCircularDependencies();
+   * console.log(visualization);
+   * // Output:
+   * // Found 1 circular dependency/ies:
+   * //
+   * // Circular Dependency 1:
+   * //   ServiceA → ServiceB → ServiceA
+   * ```
    */
   visualizeCircularDependencies(): string {
     const circularDeps = this.getCircularDependencies();
@@ -613,35 +1019,36 @@ export class ServiceCollection {
   }
 }
 
-export interface DependencyTreeNode {
-  token: Token;
-  name: string;
-  lifetime: ServiceLifetime | 'CIRCULAR' | 'NOT_REGISTERED';
-  dependencies: DependencyTreeNode[];
-  depth: number;
-  isCircular?: boolean;
-  circularPath?: Token[];
-}
-
-export interface CircularDependency {
-  path: Token[];
-  tokens: Array<{ token: Token; name: string }>;
-}
-
+/**
+ * Service provider for resolving and managing service instances.
+ * This class handles service resolution, instance caching, scope management,
+ * and circular dependency resolution for all service lifetimes.
+ *
+ * @example
+ * ```typescript
+ * const provider = services.buildServiceProvider();
+ * const logger = await provider.getRequiredService<ILogger>(ILogger);
+ *
+ * // Create a scope for scoped services
+ * const scope = provider.createScope();
+ * const userService = await scope.getRequiredService<IUserService>(IUserService);
+ * await scope.dispose(); // Clean up scoped instances
+ * ```
+ */
 export class ServiceProvider {
-  private instances = new Map<Token, any>();
-  private descriptorInstances = new Map<string, any>(); // Cache instances per descriptor key for multiple implementations
-  private scopedInstances = new Map<Token, any>();
+  private instances = new Map<Token, unknown>();
+  private descriptorInstances = new Map<string, unknown>(); // Cache instances per descriptor key for multiple implementations
+  private scopedInstances = new Map<Token, unknown>();
   private destroyed = false;
   private readonly validateScopes: boolean;
   // Resolution stack for circular dependency detection
   private resolutionStack = new Set<Token>();
   // Track instances currently being constructed (for circular dependencies)
-  private constructingInstances = new Map<Token, any>();
+  private constructingInstances = new Map<Token, unknown>();
 
   constructor(
     private readonly descriptors: Map<Token, ServiceDescriptor[]>,
-    private readonly tokenMap: Map<Token, Newable>,
+    private readonly tokenMap: Map<Token, Newable<unknown>>,
     private readonly keyedDescriptors: Map<string | symbol, Map<Token, ServiceDescriptor>>,
     validateScopes: boolean = false,
     private readonly parent?: ServiceProvider,
@@ -657,15 +1064,60 @@ export class ServiceProvider {
     return current;
   }
 
+  /**
+   * Creates a unique descriptor key for a service descriptor.
+   * This allows multiple implementations with the same token to have separate instances.
+   */
+  private getDescriptorKey(token: Token, desc: ServiceDescriptor): string {
+    if (desc.implementation) {
+      return `${token.toString()}:${desc.implementation.name || desc.implementation.toString()}`;
+    }
+    if (desc.factory) {
+      return `${token.toString()}:factory:${desc.factory.toString()}`;
+    }
+    return `${token.toString()}:value:${desc.value?.toString()}`;
+  }
+
+  /**
+   * Gets a service instance by token. Returns undefined if the service is not registered.
+   *
+   * @template T The service type
+   * @param token - The service token to resolve
+   * @returns A promise that resolves to the service instance, or undefined if not registered
+   *
+   * @example
+   * ```typescript
+   * const logger = await provider.getService<ILogger>(ILogger);
+   * if (logger) {
+   *   logger.log('Service found');
+   * }
+   * ```
+   */
   async getService<T>(token: Token<T>): Promise<T | undefined> {
     if (this.destroyed) throw new Error('Provider disposed');
 
     const desc = this.lookup(token);
     if (!desc) return undefined;
 
-    return this.resolveService(desc, token);
+    return this.resolveService(desc, token) as Promise<T | undefined>;
   }
 
+  /**
+   * Gets all registered implementations for a token. Useful when multiple implementations
+   * are registered for the same token.
+   *
+   * @template T The service type
+   * @param token - The service token to resolve
+   * @returns A promise that resolves to an array of all registered service instances
+   *
+   * @example
+   * ```typescript
+   * services.addSingleton(ILogger, FileLogger);
+   * services.addSingleton(ILogger, ConsoleLogger);
+   * const loggers = await provider.getServices<ILogger>(ILogger);
+   * // Returns [FileLogger instance, ConsoleLogger instance]
+   * ```
+   */
   async getServices<T>(token: Token<T>): Promise<T[]> {
     if (this.destroyed) throw new Error('Provider disposed');
 
@@ -674,18 +1126,26 @@ export class ServiceProvider {
 
     const results = await Promise.all(
       descriptors.map((desc) => {
-        // Create descriptorKey same way as resolveService does
-        const descriptorKey = desc.implementation
-          ? `${token.toString()}:${desc.implementation.name || desc.implementation.toString()}`
-          : desc.factory
-          ? `${token.toString()}:factory:${desc.factory.toString()}`
-          : `${token.toString()}:value:${desc.value?.toString()}`;
+        const descriptorKey = this.getDescriptorKey(token, desc);
         return this.resolveService(desc, token, descriptorKey);
       }),
     );
     return results.filter((r) => r !== undefined) as T[];
   }
 
+  /**
+   * Gets a keyed service instance by token and key.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param key - The key identifying the specific implementation
+   * @returns A promise that resolves to the service instance, or undefined if not found
+   *
+   * @example
+   * ```typescript
+   * const fileLogger = await provider.getKeyedService<ILogger>(ILogger, 'file');
+   * ```
+   */
   async getKeyedService<T>(token: Token<T>, key: string | symbol): Promise<T | undefined> {
     if (this.destroyed) throw new Error('Provider disposed');
 
@@ -695,9 +1155,23 @@ export class ServiceProvider {
     const desc = keyedMap.get(token);
     if (!desc) return undefined;
 
-    return this.resolveService(desc, token);
+    return this.resolveService(desc, token) as Promise<T | undefined>;
   }
 
+  /**
+   * Gets a required keyed service instance. Throws an error if the service is not found.
+   *
+   * @template T The service type
+   * @param token - The service token
+   * @param key - The key identifying the specific implementation
+   * @returns A promise that resolves to the service instance
+   * @throws Error if the service is not registered
+   *
+   * @example
+   * ```typescript
+   * const logger = await provider.getRequiredKeyedService<ILogger>(ILogger, 'file');
+   * ```
+   */
   async getRequiredKeyedService<T>(token: Token<T>, key: string | symbol): Promise<T> {
     const instance = await this.getKeyedService(token, key);
     if (instance === undefined || instance === null) {
@@ -706,140 +1180,64 @@ export class ServiceProvider {
     return instance;
   }
 
+  /**
+   * Checks if a service is registered for the given token.
+   *
+   * @template T The service type
+   * @param token - The service token to check
+   * @returns A promise that resolves to true if the service is registered, false otherwise
+   *
+   * @example
+   * ```typescript
+   * if (await provider.isService(ILogger)) {
+   *   const logger = await provider.getRequiredService(ILogger);
+   * }
+   * ```
+   */
   async isService<T>(token: Token<T>): Promise<boolean> {
     if (this.destroyed) return false;
     const desc = this.lookup(token);
     return desc !== undefined;
   }
 
-  private async resolveService(desc: ServiceDescriptor, token: Token, descriptorKey?: string): Promise<any> {
-    // If this is a value registration, return it directly
+  private async resolveService(desc: ServiceDescriptor, token: Token, descriptorKey?: string): Promise<unknown> {
+    // Early return for value registrations
     if (desc.value !== undefined) {
       return desc.value;
     }
 
-    if (this.validateScopes && desc.lifetime === ServiceLifetime.Scoped) {
-      if (this.parent === undefined) {
-        throw new Error(
-          `Cannot resolve scoped service '${token.toString()}' from root provider. Create a scope first.`,
-        );
-      }
-    }
+    // Validate scoped service resolution
+    this.validateScopedResolution(desc, token);
 
     switch (desc.lifetime) {
       case ServiceLifetime.Singleton:
-        const rootProvider = this.getRootProvider();
-        // Create a unique key for this descriptor (token + implementation/factory)
-        // This allows multiple implementations with the same token to have separate instances
-        // Use provided descriptorKey if available, otherwise create it
-        const finalDescriptorKey =
-          descriptorKey ||
-          (desc.implementation
-            ? `${token.toString()}:${desc.implementation.name || desc.implementation.toString()}`
-            : desc.factory
-            ? `${token.toString()}:factory:${desc.factory.toString()}`
-            : `${token.toString()}:value:${desc.value?.toString()}`);
-
-        // Check if this specific descriptor already has an instance (for multiple implementations with same token)
-        // Use a Map with string keys for reliable comparison
-        if (rootProvider.descriptorInstances.has(finalDescriptorKey)) {
-          return rootProvider.descriptorInstances.get(finalDescriptorKey);
-        }
-
-        // Check if already resolved (backward compatibility for single implementation per token)
-        // Only check token cache if there's only one descriptor for this token
-        const descriptorsForToken = rootProvider.descriptors.get(token);
-        if (descriptorsForToken && descriptorsForToken.length === 1 && rootProvider.instances.has(token)) {
-          return rootProvider.instances.get(token);
-        }
-        // Check for circular dependency - if already in resolution stack, return partially constructed instance
-        // Use descriptorKey for resolution stack to support multiple implementations
-        if (rootProvider.resolutionStack.has(finalDescriptorKey as any)) {
-          const partialInstance = rootProvider.constructingInstances.get(finalDescriptorKey as any);
-          if (partialInstance !== undefined) {
-            return partialInstance;
-          }
-          // If no partial instance yet, this is a problem (shouldn't happen, but handle gracefully)
-          throw new Error(
-            `Circular dependency detected for singleton service '${token.toString()}'. Service is in resolution stack but no partial instance found.`,
-          );
-        }
-        // Add to resolution stack and create instance
-        rootProvider.resolutionStack.add(finalDescriptorKey as any);
-        try {
-          const instance = await rootProvider.createInstance(desc, rootProvider, token, finalDescriptorKey);
-          // Cache by descriptor key for multiple implementations support
-          rootProvider.descriptorInstances.set(finalDescriptorKey, instance);
-          // Also cache by token for backward compatibility (only if this is the first descriptor for this token)
-          if (!rootProvider.instances.has(token)) {
-            rootProvider.instances.set(token, instance);
-          }
-          return instance;
-        } finally {
-          rootProvider.resolutionStack.delete(finalDescriptorKey as any);
-          rootProvider.constructingInstances.delete(finalDescriptorKey as any);
-        }
+        return this.resolveSingleton(desc, token, descriptorKey);
 
       case ServiceLifetime.Scoped:
-        if (this.validateScopes && this.parent === undefined) {
-          throw new Error(`Cannot resolve scoped service '${token.toString()}' from root provider.`);
-        }
-        // Check if already resolved in this scope
-        if (this.scopedInstances.has(token)) {
-          return this.scopedInstances.get(token);
-        }
-        // Check for circular dependency within the same scope
-        if (this.resolutionStack.has(token)) {
-          const partialInstance = this.constructingInstances.get(token);
-          if (partialInstance !== undefined) {
-            return partialInstance;
-          }
-          throw new Error(
-            `Circular dependency detected for scoped service '${token.toString()}'. Service is in resolution stack but no partial instance found.`,
-          );
-        }
-        // Add to resolution stack and create instance
-        this.resolutionStack.add(token);
-        try {
-          const instance = await this.createInstance(desc, this, token);
-          this.scopedInstances.set(token, instance);
-          return instance;
-        } finally {
-          this.resolutionStack.delete(token);
-          this.constructingInstances.delete(token);
-        }
+        return this.resolveScoped(desc, token);
 
       case ServiceLifetime.Transient:
-        // For transient services, we support circular dependencies within the same resolution call
-        // This means: within a single getRequiredService call, if there's a circular dependency,
-        // we return the same instance being constructed. But each new getRequiredService call
-        // will create a new instance (maintaining transient behavior)
-        if (this.resolutionStack.has(token)) {
-          // Circular dependency detected - return the partially constructed instance
-          const partialInstance = this.constructingInstances.get(token);
-          if (partialInstance !== undefined) {
-            return partialInstance;
-          }
-          // This shouldn't happen, but handle gracefully
-          throw new Error(
-            `Circular dependency detected for transient service '${token.toString()}'. Service is in resolution stack but no partial instance found.`,
-          );
-        }
-        // Add to resolution stack and create instance
-        this.resolutionStack.add(token);
-        try {
-          const instance = await this.createInstance(desc, this, token);
-          return instance;
-        } finally {
-          this.resolutionStack.delete(token);
-          this.constructingInstances.delete(token);
-        }
+        return this.resolveTransient(desc, token);
 
       default:
         throw new Error('Unknown lifetime');
     }
   }
 
+  /**
+   * Gets a required service instance. Throws an error if the service is not registered.
+   *
+   * @template T The service type
+   * @param token - The service token to resolve
+   * @returns A promise that resolves to the service instance
+   * @throws Error if the service is not registered
+   *
+   * @example
+   * ```typescript
+   * const logger = await provider.getRequiredService<ILogger>(ILogger);
+   * logger.log('Service resolved');
+   * ```
+   */
   async getRequiredService<T>(token: Token<T>): Promise<T> {
     const instance = await this.getService(token);
     if (instance === undefined || instance === null)
@@ -847,17 +1245,44 @@ export class ServiceProvider {
     return instance;
   }
 
+  /**
+   * Creates a new scope for scoped services. Scoped services are cached per scope
+   * and disposed when the scope is disposed.
+   *
+   * @returns A new ServiceProvider instance representing the scope
+   *
+   * @example
+   * ```typescript
+   * const scope = provider.createScope();
+   * const userService = await scope.getRequiredService<IUserService>(IUserService);
+   * // ... use userService
+   * await scope.dispose(); // Clean up scoped instances
+   * ```
+   */
   createScope(): ServiceProvider {
     return new ServiceProvider(this.descriptors, this.tokenMap, this.keyedDescriptors, this.validateScopes, this);
   }
 
+  /**
+   * Disposes the provider and all scoped instances. Calls onDestroy lifecycle hooks
+   * on all disposable instances. After disposal, the provider cannot be used.
+   *
+   * @returns A promise that resolves when disposal is complete
+   *
+   * @example
+   * ```typescript
+   * await provider.dispose();
+   * // Provider is now disposed and cannot be used
+   * ```
+   */
   async dispose(): Promise<void> {
     if (this.destroyed) return;
     const all = [...this.instances.values(), ...this.scopedInstances.values()];
     for (const inst of all) {
-      if (inst && typeof inst.onDestroy === 'function') {
+      const lifecycle = inst as LifecycleHooks;
+      if (lifecycle && typeof lifecycle.onDestroy === 'function') {
         try {
-          await inst.onDestroy();
+          await lifecycle.onDestroy();
         } catch (e) {
           console.error(e);
         }
@@ -874,15 +1299,235 @@ export class ServiceProvider {
     return descriptors && descriptors.length > 0 ? descriptors[descriptors.length - 1] : undefined;
   }
 
+  /**
+   * Validates that scoped services are not resolved from root provider.
+   */
+  private validateScopedResolution(desc: ServiceDescriptor, token: Token): void {
+    if (this.validateScopes && desc.lifetime === ServiceLifetime.Scoped && this.parent === undefined) {
+      throw new Error(`Cannot resolve scoped service '${token.toString()}' from root provider. Create a scope first.`);
+    }
+  }
+
+  /**
+   * Resolves a singleton service instance.
+   * Singleton instances are cached at the root provider level.
+   */
+  private async resolveSingleton(desc: ServiceDescriptor, token: Token, descriptorKey?: string): Promise<unknown> {
+    const rootProvider = this.getRootProvider();
+    const finalDescriptorKey = descriptorKey || this.getDescriptorKey(token, desc);
+
+    // Check cached instance by descriptor key (supports multiple implementations)
+    if (rootProvider.descriptorInstances.has(finalDescriptorKey)) {
+      return rootProvider.descriptorInstances.get(finalDescriptorKey);
+    }
+
+    // Check cached instance by token (backward compatibility for single implementation)
+    const descriptorsForToken = rootProvider.descriptors.get(token);
+    if (descriptorsForToken?.length === 1 && rootProvider.instances.has(token)) {
+      return rootProvider.instances.get(token);
+    }
+
+    // Handle circular dependency
+    const descriptorKeyAsToken = finalDescriptorKey as Token;
+    const partialInstance = this.getPartialInstance(
+      rootProvider.resolutionStack,
+      rootProvider.constructingInstances,
+      descriptorKeyAsToken,
+    );
+    if (partialInstance !== undefined) {
+      return partialInstance;
+    }
+
+    if (rootProvider.resolutionStack.has(descriptorKeyAsToken)) {
+      throw this.createCircularDependencyError('singleton', token);
+    }
+
+    // Create and cache instance
+    return this.withResolutionTracking(
+      descriptorKeyAsToken,
+      rootProvider.resolutionStack,
+      rootProvider.constructingInstances,
+      async () => {
+        const instance = await rootProvider.createInstance(desc, rootProvider, token, finalDescriptorKey);
+        rootProvider.descriptorInstances.set(finalDescriptorKey, instance);
+        if (!rootProvider.instances.has(token)) {
+          rootProvider.instances.set(token, instance);
+        }
+        return instance;
+      },
+    );
+  }
+
+  /**
+   * Resolves a scoped service instance.
+   * Scoped instances are cached per scope and shared within the same scope.
+   */
+  private async resolveScoped(desc: ServiceDescriptor, token: Token): Promise<unknown> {
+    if (this.validateScopes && this.parent === undefined) {
+      throw new Error(`Cannot resolve scoped service '${token.toString()}' from root provider.`);
+    }
+
+    // Return cached instance if already resolved in this scope
+    if (this.scopedInstances.has(token)) {
+      return this.scopedInstances.get(token);
+    }
+
+    // Handle circular dependency
+    const partialInstance = this.getPartialInstance(this.resolutionStack, this.constructingInstances, token);
+    if (partialInstance !== undefined) {
+      return partialInstance;
+    }
+
+    if (this.resolutionStack.has(token)) {
+      throw this.createCircularDependencyError('scoped', token);
+    }
+
+    // Create and cache instance in this scope
+    return this.withResolutionTracking(token, this.resolutionStack, this.constructingInstances, async () => {
+      const instance = await this.createInstance(desc, this, token);
+      this.scopedInstances.set(token, instance);
+      return instance;
+    });
+  }
+
+  /**
+   * Resolves a transient service instance.
+   * Transient instances are created fresh on each resolution, but circular dependencies
+   * within the same resolution call are supported.
+   */
+  private async resolveTransient(desc: ServiceDescriptor, token: Token): Promise<unknown> {
+    // Handle circular dependency within the same resolution call
+    const partialInstance = this.getPartialInstance(this.resolutionStack, this.constructingInstances, token);
+    if (partialInstance !== undefined) {
+      return partialInstance;
+    }
+
+    if (this.resolutionStack.has(token)) {
+      throw this.createCircularDependencyError('transient', token);
+    }
+
+    // Create new instance (not cached)
+    return this.withResolutionTracking(token, this.resolutionStack, this.constructingInstances, async () => {
+      return await this.createInstance(desc, this, token);
+    });
+  }
+
+  /**
+   * Creates a standardized error message for circular dependency issues.
+   */
+  private createCircularDependencyError(lifetime: string, token: Token): Error {
+    return new Error(
+      `Circular dependency detected for ${lifetime} service '${token.toString()}'. Service is in resolution stack but no partial instance found.`,
+    );
+  }
+
+  /**
+   * Creates a placeholder instance for circular dependency support.
+   * The placeholder is stored in constructingInstances so circular dependencies can reference it.
+   */
+  private createPlaceholderInstance(
+    desc: ServiceDescriptor,
+    resolver: ServiceProvider,
+    token: Token,
+    instanceKey?: string | Token,
+  ): unknown {
+    const prototype = desc.implementation!.prototype || Object.prototype;
+    const placeholder = Object.create(prototype);
+    const key = instanceKey !== undefined ? instanceKey : token;
+    resolver.constructingInstances.set(key as Token, placeholder);
+    return placeholder;
+  }
+
+  /**
+   * Constructs an instance using a placeholder for circular dependency support.
+   * Uses Reflect.construct to call the constructor on the existing placeholder instance.
+   */
+  private constructWithPlaceholder(
+    implementation: Newable<unknown>,
+    dependencies: unknown[],
+    placeholder: unknown,
+  ): unknown {
+    const constructed = Reflect.construct(implementation, dependencies, implementation);
+    this.copyInstanceProperties(constructed, placeholder);
+    return placeholder;
+  }
+
+  /**
+   * Copies all own properties from source to target instance.
+   * Used for circular dependency support when updating placeholder instances.
+   */
+  private copyInstanceProperties(source: unknown, target: unknown): void {
+    if (typeof source !== 'object' || source === null || typeof target !== 'object' || target === null) {
+      return;
+    }
+
+    const sourceObj = source as Record<string, unknown>;
+    const targetObj = target as Record<string, unknown>;
+
+    for (const key of Object.getOwnPropertyNames(sourceObj)) {
+      if (key !== 'constructor') {
+        try {
+          const descriptor = Object.getOwnPropertyDescriptor(sourceObj, key);
+          if (descriptor) {
+            Object.defineProperty(targetObj, key, descriptor);
+          } else {
+            targetObj[key] = sourceObj[key];
+          }
+        } catch (e) {
+          // If defineProperty fails, try direct assignment
+          try {
+            targetObj[key] = sourceObj[key];
+          } catch (e2) {
+            // Ignore errors for non-configurable properties
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Checks if a token is in the resolution stack (circular dependency detection).
+   * Returns the partial instance if found, undefined otherwise.
+   */
+  private getPartialInstance(
+    resolutionStack: Set<Token>,
+    constructingInstances: Map<Token, unknown>,
+    key: Token,
+  ): unknown | undefined {
+    if (resolutionStack.has(key)) {
+      return constructingInstances.get(key);
+    }
+    return undefined;
+  }
+
+  /**
+   * Executes a resolution function with circular dependency tracking.
+   * Automatically manages resolution stack and constructing instances.
+   */
+  private async withResolutionTracking<T>(
+    key: Token,
+    resolutionStack: Set<Token>,
+    constructingInstances: Map<Token, unknown>,
+    resolutionFn: () => Promise<T>,
+  ): Promise<T> {
+    resolutionStack.add(key);
+    try {
+      return await resolutionFn();
+    } finally {
+      resolutionStack.delete(key);
+      constructingInstances.delete(key);
+    }
+  }
+
   private async createInstance(
     desc: ServiceDescriptor,
     resolver: ServiceProvider = this,
     token?: Token,
     instanceKey?: string | Token,
-  ): Promise<any> {
+  ): Promise<unknown> {
+    // Early returns for value and factory registrations
     if (desc.value !== undefined) return desc.value;
     if (desc.factory) {
-      // Validate scope if factory uses scoped dependencies
       if (this.validateScopes) {
         this.validateDependencies(desc, resolver);
       }
@@ -890,90 +1535,37 @@ export class ServiceProvider {
     }
 
     if (!desc.implementation) {
-      throw new Error('Invalid service descriptor: ' + JSON.stringify(desc) + ' for token: ' + desc.token.toString());
+      throw new Error(`Invalid service descriptor for token '${desc.token.toString()}': ${JSON.stringify(desc)}`);
     }
 
-    // For circular dependency support:
-    // When a constructor is called, if a dependency is already being constructed
-    // (in resolution stack), the partially constructed instance is returned.
-    // In TypeScript/JavaScript, we need to:
-    // 1. Create instance first (with placeholders for circular deps)
-    // 2. Store it in constructingInstances before resolving dependencies
-    // 3. Resolve dependencies (circular ones will get the partial instance)
-    // 4. Update the instance with actual dependencies
+    const dependencies = desc.dependencies ?? [];
+    const supportsCircularDependency = token !== undefined;
 
-    // Support circular dependencies for Singleton, Scoped, and Transient services
-    // For Transient: circular dependency is resolved within the same resolution call
-    const supportsCircular = token !== undefined;
+    // Create placeholder instance for circular dependency support
+    const placeholder =
+      supportsCircularDependency && token ? this.createPlaceholderInstance(desc, resolver, token, instanceKey) : null;
 
-    // Get parameter count to create instance with correct number of parameters
-    // If dependencies is undefined, default to empty array (for implementations without dependencies)
-    const deps = desc.dependencies ?? [];
-    const paramCount = deps.length;
+    // Resolve all dependencies (circular ones will get the placeholder)
+    const resolvedDependencies = await Promise.all(
+      dependencies.map((depToken) => resolver.getRequiredService(depToken)),
+    );
 
-    // Create a placeholder instance first (for circular dependency support)
-    // This allows circular dependencies to reference the instance being constructed
-    // We use Object.create() to avoid calling constructor with undefined parameters
-    let instance: any;
-    let needsPlaceholder = false;
-    if (supportsCircular && token) {
-      // Always create placeholder when token is provided (for circular dependency support)
-      // We can't know in advance if there will be a circular dependency
-      // Create placeholder using Object.create to avoid constructor call
-      // This allows circular dependencies to reference the instance being constructed
-      // Ensure prototype exists (for JavaScript compatibility)
-      const prototype = desc.implementation.prototype || Object.prototype;
-      instance = Object.create(prototype);
-      // Use instanceKey if provided (for multiple implementations support), otherwise use token
-      const key = instanceKey !== undefined ? instanceKey : token;
-      resolver.constructingInstances.set(key as any, instance);
-      needsPlaceholder = true;
-    }
-
-    // Now resolve dependencies
-    // If there's a circular dependency, it will get the partial instance from constructingInstances
-    // Dependencies default to empty array if not provided
-    const resolvedDeps = await Promise.all(deps.map((depToken) => resolver.getRequiredService(depToken)));
-
-    // Validate scope if dependencies include scoped services
+    // Validate scope constraints if enabled
     if (this.validateScopes) {
       this.validateDependencies(desc, resolver);
     }
 
-    // If we created a placeholder, update it with actual dependencies
-    // Otherwise, create a new instance
-    if (needsPlaceholder && instance) {
-      // Update the placeholder instance with actual dependencies
-      // Use Reflect.construct to call constructor on the placeholder
-      // This allows us to call the constructor with 'new' semantics on existing instance
-      const constructed = Reflect.construct(desc.implementation, resolvedDeps, desc.implementation);
+    // Create or update instance
+    const instance = placeholder
+      ? this.constructWithPlaceholder(desc.implementation, resolvedDependencies, placeholder)
+      : new desc.implementation(...resolvedDependencies);
 
-      // Copy all own properties from constructed instance to placeholder
-      for (const key of Object.getOwnPropertyNames(constructed)) {
-        if (key !== 'constructor') {
-          try {
-            const descriptor = Object.getOwnPropertyDescriptor(constructed, key);
-            if (descriptor) {
-              Object.defineProperty(instance, key, descriptor);
-            } else {
-              instance[key] = constructed[key];
-            }
-          } catch (e) {
-            // If defineProperty fails, try direct assignment
-            try {
-              instance[key] = constructed[key];
-            } catch (e2) {
-              // Ignore errors for non-configurable properties
-            }
-          }
-        }
-      }
-    } else {
-      // No circular dependency support needed, create instance normally
-      instance = new desc.implementation(...resolvedDeps);
+    // Call lifecycle hook if present
+    const lifecycle = instance as LifecycleHooks;
+    if (lifecycle && typeof lifecycle.onInit === 'function') {
+      await lifecycle.onInit();
     }
 
-    if (typeof instance.onInit === 'function') await instance.onInit();
     return instance;
   }
 
