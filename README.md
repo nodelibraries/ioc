@@ -263,10 +263,11 @@ class ServiceB {
 ### Registration Methods
 
 ```typescript
-// Class registration
+// Class registration (no dependencies - constructor has no parameters)
 services.addSingleton(Logger);
 
 // Interface registration with dependencies
+// ⚠️ IMPORTANT: If UserService constructor requires ILogger, you MUST provide [ILoggerToken]
 services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
 
 // Factory pattern

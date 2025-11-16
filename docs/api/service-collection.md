@@ -24,13 +24,13 @@ addSingleton<T>(token: Token<T>, factory: ServiceFactory<T>): this;
 
 - `token`: Token to identify the service (Symbol, string, or class constructor)
 - `implementation`: (Optional) Class constructor implementing the service
-- `dependencies`: (Optional) Array of dependency tokens. Defaults to `[]` if omitted
+- `dependencies`: **Required if the class constructor has parameters**. Array of dependency tokens. If the constructor has dependencies, you **must** provide them in this array, otherwise the container cannot resolve them. If the constructor has no parameters, you can omit this (defaults to `[]`).
 - `factory`: (Optional) Factory function that creates the service instance
 
 **Examples:**
 
 ```typescript
-// 1. Class registration (simplest) - no dependencies
+// 1. Class registration (simplest) - no dependencies (constructor has no parameters)
 services.addSingleton(Logger);
 
 // 2. Interface registration - dependencies default to []

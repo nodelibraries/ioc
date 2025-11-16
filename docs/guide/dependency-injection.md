@@ -62,14 +62,24 @@ const userService = await provider.getRequiredService<IUserService>(IUserService
 
 ## Explicit Dependencies
 
-Specify dependencies explicitly when registering:
+**⚠️ IMPORTANT:** If your class constructor has parameters (dependencies), you **MUST** provide them in the dependencies array. The container cannot automatically infer dependencies from the constructor.
 
 ```typescript
-services.addScoped<IUserService>(
-  IUserServiceToken,
-  UserService,
-  [ILoggerToken, IDatabaseToken], // Explicit dependencies array
-);
+// ✅ CORRECT: Constructor has ILogger parameter, so we provide [ILoggerToken]
+class UserService {
+  constructor(private logger: ILogger) {} // Has dependency
+}
+services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
+
+// ❌ WRONG: Constructor has dependency but dependencies array is missing
+// This will fail - container cannot resolve ILogger
+services.addScoped<IUserService>(IUserServiceToken, UserService); // Missing [ILoggerToken]!
+
+// ✅ CORRECT: No dependencies - constructor has no parameters
+class Logger {
+  log(message: string) {} // No constructor parameters
+}
+services.addSingleton<ILogger>(ILoggerToken, Logger); // No dependencies array needed
 ```
 
 ## Dependency Injection Rules
