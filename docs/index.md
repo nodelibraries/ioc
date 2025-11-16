@@ -202,6 +202,15 @@ npm install @nodelibraries/ioc
 
 No additional configuration required! The library has zero dependencies and works out of the box.
 
+## Support
+
+If you find this project helpful, consider supporting it:
+
+- ☕ [Buy me a coffee](https://buymeacoffee.com/ylcnfrht)
+- ⭐ [Star us on GitHub](https://github.com/nodelibraries/ioc)
+- 📝 [Report issues](https://github.com/nodelibraries/ioc/issues)
+- 💬 [Join discussions](https://github.com/nodelibraries/ioc/discussions)
+
 ## Next Steps
 
 - Read the [Getting Started Guide](/guide/)

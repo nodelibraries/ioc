@@ -414,6 +414,15 @@ ISC License - see [LICENSE](./LICENSE) file for details.
 
 ---
 
+## 📞 Support
+
+- 📖 [Documentation](https://nodelibraries.github.io/ioc/)
+- 💬 [GitHub Issues](https://github.com/nodelibraries/ioc/issues)
+- 📧 [GitHub Discussions](https://github.com/nodelibraries/ioc/discussions)
+- ☕ [Buy me a coffee](https://buymeacoffee.com/ylcnfrht) - If you find this project helpful, consider supporting it!
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
@@ -423,14 +432,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
-
----
-
-## 📞 Support
-
-- 📖 [Documentation](https://nodelibraries.github.io/ioc/)
-- 💬 [GitHub Issues](https://github.com/nodelibraries/ioc/issues)
-- 📧 [GitHub Discussions](https://github.com/nodelibraries/ioc/discussions)
 
 ---
 
