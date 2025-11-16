@@ -2,17 +2,19 @@
 
 # @nodelibraries/ioc
 
-**Type-Safe IoC Container for Node.js, TypeScript and JavaScript**
+### Type-Safe IoC Container for Node.js, TypeScript and JavaScript
 
-[![npm version](https://img.shields.io/npm/v/@nodelibraries/ioc.svg)](https://www.npmjs.com/package/@nodelibraries/ioc)
-[![npm downloads](https://img.shields.io/npm/dm/@nodelibraries/ioc.svg)](https://www.npmjs.com/package/@nodelibraries/ioc)
-[![License](https://img.shields.io/npm/l/@nodelibraries/ioc.svg)](https://github.com/nodelibraries/ioc/blob/main/LICENSE)
-[![Node.js Version](https://img.shields.io/node/v/@nodelibraries/ioc.svg)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg)](https://www.typescriptlang.org/)
+[![npm version](https://img.shields.io/npm/v/@nodelibraries/ioc.svg?style=for-the-badge&logo=npm)](https://www.npmjs.com/package/@nodelibraries/ioc)
+[![npm downloads](https://img.shields.io/npm/dm/@nodelibraries/ioc.svg?style=for-the-badge&logo=npm)](https://www.npmjs.com/package/@nodelibraries/ioc)
+[![License](https://img.shields.io/npm/l/@nodelibraries/ioc.svg?style=for-the-badge)](https://github.com/nodelibraries/ioc/blob/main/LICENSE)
+[![Node.js Version](https://img.shields.io/node/v/@nodelibraries/ioc.svg?style=for-the-badge&logo=node.js)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 
-A lightweight, production-ready Inversion of Control (IoC) container inspired by .NET Core's dependency injection system. Built with TypeScript for full type safety, zero dependencies, and no decorators required.
+**A lightweight, production-ready Inversion of Control (IoC) container inspired by .NET Core's dependency injection system.**
 
-[Documentation](https://nodelibraries.github.io/ioc/) • [Examples](./examples) • [API Reference](https://nodelibraries.github.io/ioc/api/) • [GitHub](https://github.com/nodelibraries/ioc)
+Built with TypeScript for full type safety • Zero dependencies • No decorators required
+
+[📖 Documentation](https://nodelibraries.github.io/ioc/) • [💡 Examples](./examples) • [📚 API Reference](https://nodelibraries.github.io/ioc/api/) • [⭐ GitHub](https://github.com/nodelibraries/ioc)
 
 </div>
 
@@ -192,8 +194,8 @@ Battle-tested features including scope validation, lifecycle hooks, and comprehe
 ```typescript
 // Build with validation
 const provider = services.buildServiceProvider({
-  validateScopes: true,      // Catch lifetime mismatches
-  validateOnBuild: true,     // Validate all dependencies
+  validateScopes: true, // Catch lifetime mismatches
+  validateOnBuild: true, // Validate all dependencies
 });
 ```
 
@@ -218,11 +220,11 @@ class ServiceB {
 
 ### Service Lifetimes
 
-| Lifetime | Description | Use Case |
-|----------|-------------|----------|
-| **Singleton** | One instance for the entire application | Loggers, Configuration, Caches |
-| **Scoped** | One instance per scope | Request-scoped services, Unit of Work |
-| **Transient** | New instance every time | Validators, Calculators, Stateless services |
+| Lifetime      | Description                             | Use Case                                    |
+| ------------- | --------------------------------------- | ------------------------------------------- |
+| **Singleton** | One instance for the entire application | Loggers, Configuration, Caches              |
+| **Scoped**    | One instance per scope                  | Request-scoped services, Unit of Work       |
+| **Transient** | New instance every time                 | Validators, Calculators, Stateless services |
 
 ### Registration Methods
 
@@ -324,26 +326,33 @@ class DatabaseConnection {
 We provide 19+ comprehensive examples covering all features:
 
 ### Basic Examples (1-3)
+
 - Basic usage, interface registration, string tokens
 
 ### Core Concepts (4-6)
+
 - Service lifetimes, lifecycle hooks, value registration
 
 ### Advanced Features (7-13)
+
 - Generic types, factory pattern, multiple implementations, keyed services, scope validation
 
 ### Complex Scenarios (14-15)
+
 - Circular dependencies, complex dependency chains
 
 ### Real-World Applications (16-17)
+
 - Service management, Express.js integration
 
 ### Analysis & Visualization (18-19)
+
 - Dependency tree visualization, circular dependency detection
 
 See [examples/README.md](./examples/README.md) for detailed descriptions and running instructions.
 
 **Run an example:**
+
 ```bash
 npx ts-node examples/1-basic.ts
 ```
@@ -354,19 +363,19 @@ npx ts-node examples/1-basic.ts
 
 This container is inspired by .NET Core's dependency injection system but designed for TypeScript/Node.js.
 
-| Feature | .NET Core DI | @nodelibraries/ioc |
-|---------|--------------|-------------------|
-| Singleton Lifetime | ✅ | ✅ |
-| Scoped Lifetime | ✅ | ✅ |
-| Transient Lifetime | ✅ | ✅ |
-| Factory Pattern | ✅ | ✅ |
-| Multiple Implementations | ✅ | ✅ |
-| Keyed Services | ✅ | ✅ |
-| TryAdd Pattern | ✅ | ✅ |
-| Scope Validation | ✅ | ✅ |
-| Circular Dependencies | ⚠️ May fail | ✅ Works for all lifetimes |
-| Dependency Tree Visualization | ❌ | ✅ |
-| Circular Dependency Detection | ❌ | ✅ |
+| Feature                       | .NET Core DI | @nodelibraries/ioc         |
+| ----------------------------- | ------------ | -------------------------- |
+| Singleton Lifetime            | ✅           | ✅                         |
+| Scoped Lifetime               | ✅           | ✅                         |
+| Transient Lifetime            | ✅           | ✅                         |
+| Factory Pattern               | ✅           | ✅                         |
+| Multiple Implementations      | ✅           | ✅                         |
+| Keyed Services                | ✅           | ✅                         |
+| TryAdd Pattern                | ✅           | ✅                         |
+| Scope Validation              | ✅           | ✅                         |
+| Circular Dependencies         | ⚠️ May fail  | ✅ Works for all lifetimes |
+| Dependency Tree Visualization | ❌           | ✅                         |
+| Circular Dependency Detection | ❌           | ✅                         |
 
 For a detailed comparison, see [COMPARISON.md](./COMPARISON.md).
 
