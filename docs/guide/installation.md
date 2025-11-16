@@ -2,8 +2,8 @@
 
 ## Prerequisites
 
-- Node.js >= 14.0.0
-- TypeScript (recommended)
+- Node.js >= 18.0.0 (LTS recommended)
+- TypeScript (recommended, but not required - works with JavaScript too)
 
 ## Install Package
 

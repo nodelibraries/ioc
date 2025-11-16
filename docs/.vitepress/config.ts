@@ -4,8 +4,22 @@ export default defineConfig({
   title: '@nodelibraries/ioc',
   description: 'Type-Safe IoC Container for Node.js, TypeScript and JavaScript',
   base: '/ioc/',
+  lastUpdated: true,
+  cleanUrls: true,
+
+  head: [
+    ['meta', { name: 'keywords', content: 'ioc, dependency injection, typescript, javascript, nodejs, di container, inversion of control' }],
+    ['meta', { property: 'og:title', content: '@nodelibraries/ioc - Type-Safe IoC Container' }],
+    ['meta', { property: 'og:description', content: 'Type-Safe IoC Container for Node.js, TypeScript and JavaScript' }],
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:url', content: 'https://nodelibraries.github.io/ioc/' }],
+  ],
 
   themeConfig: {
+    search: {
+      provider: 'local',
+    },
+
     nav: [
       { text: 'Guide', link: '/guide/' },
       { text: 'Examples', link: '/examples/' },
