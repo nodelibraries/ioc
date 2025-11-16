@@ -197,7 +197,9 @@ const provider = services.buildServiceProvider({
 
 #### What do these options do?
 
-**`validateScopes: true`** - Catches lifetime mismatches at runtime:
+> **Note:** Both options default to `false`. Enable them explicitly for validation.
+
+**`validateScopes: true`** (default: `false`) - Catches lifetime mismatches at runtime:
 
 ```typescript
 // ❌ ERROR: Scoped service injected into singleton
@@ -215,7 +217,7 @@ const scope = provider.createScope();
 const userService = await scope.getRequiredService<IUserService>(IUserServiceToken); // ✅ Works!
 ```
 
-**`validateOnBuild: true`** - Validates all dependencies at build time (catches missing dependencies early):
+**`validateOnBuild: true`** (default: `false`) - Validates all dependencies at build time (catches missing dependencies early):
 
 ```typescript
 // ❌ ERROR: Missing dependency detected at build time
