@@ -4,7 +4,7 @@ module.exports = {
   roots: ['<rootDir>'],
   testMatch: ['**/__tests__/**/*.test.ts', '**/?(*.)+(spec|test).ts'],
   collectCoverageFrom: [
-    'infusio.ts',
+    'ioc-container.ts',
     'index.ts',
     '!**/*.d.ts',
     '!**/node_modules/**',

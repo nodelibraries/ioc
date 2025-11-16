@@ -173,34 +173,133 @@ import { ServiceCollection, ServiceProvider } from 'nodelibs-ioc';
 
 ## JavaScript Support
 
-### ✅ Fully Supported Features
+`@nodelibraries/ioc` fully supports JavaScript projects! All features work in JavaScript, but without compile-time type safety. The container is written in TypeScript but compiles to JavaScript, making it compatible with both TypeScript and JavaScript projects.
 
-All features work in JavaScript, but without compile-time type safety:
+### ✅ Fully Supported Features in JavaScript
 
-- ✅ **Service Registration** - `addSingleton`, `addScoped`, `addTransient`
-- ✅ **Value Registration** - `addValue` for pre-created values
-- ✅ **Factory Pattern** - Factory functions (sync and async)
-- ✅ **Multiple Implementations** - `getServices()` for multiple registrations
-- ✅ **Keyed Services** - `addKeyed*`, `getKeyedService`, `getRequiredKeyedService`
-- ✅ **TryAdd Pattern** - `tryAddSingleton`, `tryAddScoped`, `tryAddTransient`
-- ✅ **Service Management** - `remove`, `removeAll`, `replace`
-- ✅ **Service Checking** - `isService()` method
+All core features work identically in JavaScript:
+
+#### Core Registration & Resolution
+
+- ✅ **Service Registration** - `addSingleton`, `addScoped`, `addTransient` with all overloads
+- ✅ **Value Registration** - `addValue` for pre-created values (JSON, primitives, instances)
+- ✅ **Factory Pattern** - Factory functions (both sync and async)
 - ✅ **Service Resolution** - `getService`, `getRequiredService`, `getServices`
-- ✅ **Scopes** - `createScope()`, `dispose()`
-- ✅ **Lifecycle Hooks** - `onInit()`, `onDestroy()` methods
-- ✅ **Scope Validation** - `validateScopes`, `validateOnBuild` options
-- ✅ **Circular Dependencies** - Automatic resolution
+- ✅ **Service Checking** - `isService()` method to check registration without resolving
 
-### ⚠️ JavaScript Limitations
+#### Advanced Features
+
+- ✅ **Multiple Implementations** - `getServices()` for multiple registrations with the same token
+- ✅ **Keyed Services** - `addKeyedSingleton`, `addKeyedScoped`, `addKeyedTransient`, `getKeyedService`, `getRequiredKeyedService`
+- ✅ **TryAdd Pattern** - `tryAddSingleton`, `tryAddScoped`, `tryAddTransient` (safe registration without overriding)
+- ✅ **Service Management** - `remove`, `removeAll`, `replace` for dynamic service management
+
+#### Lifetime & Scope Management
+
+- ✅ **All Service Lifetimes** - Singleton, Scoped, and Transient work identically
+- ✅ **Scopes** - `createScope()`, `dispose()` for request-scoped services
+- ✅ **Scope Validation** - `validateScopes`, `validateOnBuild` options work the same
+
+#### Lifecycle & Dependencies
+
+- ✅ **Lifecycle Hooks** - `onInit()`, `onDestroy()` methods work in JavaScript classes
+- ✅ **Circular Dependencies** - Automatic resolution works for all lifetimes
+- ✅ **Dependency Injection** - Constructor injection works identically
+
+#### Token Types
+
+- ✅ **Symbol Tokens** - Full support (recommended for JavaScript)
+- ✅ **String Tokens** - Full support
+- ✅ **Class Constructor Tokens** - Full support
+
+### ⚠️ JavaScript Limitations & Considerations
+
+#### Type Safety
 
 - ❌ **No Compile-time Type Safety** - Type errors only appear at runtime
 - ❌ **No IntelliSense/Autocomplete** - Without TypeScript, IDE support is limited
-- ❌ **No Type Inference** - Must manually track types
+- ❌ **No Type Inference** - Must manually track types and interfaces
 - ⚠️ **Runtime Validation Recommended** - Add checks in constructors for safety
+
+#### Best Practices for JavaScript
+
+1. **Use Runtime Validation** - Add checks in constructors:
+
+   ```javascript
+   class UserService {
+     constructor(logger) {
+       if (!logger || typeof logger.log !== 'function') {
+         throw new TypeError('UserService requires a valid logger');
+       }
+       this.logger = logger;
+     }
+   }
+   ```
+
+2. **Use JSDoc for Better IDE Support**:
+
+   ```javascript
+   /**
+    * @typedef {Object} ILogger
+    * @property {function(string): void} log
+    */
+
+   /**
+    * @param {ILogger} logger
+    */
+   constructor(logger) {
+     this.logger = logger;
+   }
+   ```
+
+3. **Prefer Symbol Tokens** - More reliable than strings:
+
+   ```javascript
+   const ILoggerToken = Symbol('ILogger');
+   ```
+
+4. **Always Provide Dependencies Array** - JavaScript can't infer dependencies:
+
+   ```javascript
+   // ✅ Good - explicit dependencies
+   services.addScoped(IUserServiceToken, UserService, [ILoggerToken]);
+
+   // ⚠️ Works but less safe - no dependency validation
+   services.addScoped(IUserServiceToken, UserService);
+   ```
 
 ### 📝 JavaScript Examples
 
-See the [JavaScript Examples](./examples#javascript-examples) section for complete examples.
+Complete JavaScript examples are available in the [examples](./examples) directory:
+
+- **js-basic.js** - Basic usage (registration, resolution, scopes, dependency injection)
+- **js-advanced.js** - Advanced features (factory, keyed services, multiple implementations, value registration)
+- **js-express.js** - Express.js integration (request-scoped services, middleware, routes)
+- **js-lifecycle.js** - Lifecycle hooks (onInit, onDestroy)
+- **js-circular-dependency.js** - Circular dependency resolution (singleton, scoped, transient)
+
+Run JavaScript examples:
+
+```bash
+node examples/js-basic.js
+node examples/js-advanced.js
+node examples/js-express.js
+node examples/js-lifecycle.js
+node examples/js-circular-dependency.js
+```
+
+### 🔄 TypeScript vs JavaScript Comparison
+
+| Feature                    | TypeScript     | JavaScript              |
+| -------------------------- | -------------- | ----------------------- |
+| Compile-time type checking | ✅ Yes         | ❌ No                   |
+| IntelliSense/Autocomplete  | ✅ Full        | ⚠️ Limited (with JSDoc) |
+| Type inference             | ✅ Yes         | ❌ No                   |
+| Runtime behavior           | ✅ Identical   | ✅ Identical            |
+| All features               | ✅ Supported   | ✅ Supported            |
+| Interface support          | ✅ With tokens | ⚠️ Manual (JSDoc)       |
+
+**Note:** The runtime behavior is identical. TypeScript only provides compile-time safety and better developer experience. All features work the same way at runtime in both TypeScript and JavaScript.
 
 ## Why @nodelibraries/ioc?
 
@@ -944,14 +1043,22 @@ See [examples/README.md](./examples/README.md) for detailed descriptions and run
 
 ### JavaScript Examples
 
-- **js-basic.js** - Basic JavaScript usage (registration, resolution, scopes)
-- **js-advanced.js** - Advanced JavaScript features (factory, keyed services, multiple implementations)
+Complete JavaScript examples demonstrating all features:
+
+- **js-basic.js** - Basic usage (registration, resolution, scopes, dependency injection)
+- **js-advanced.js** - Advanced features (factory, keyed services, multiple implementations, value registration)
+- **js-express.js** - Express.js integration (request-scoped services, middleware, routes)
+- **js-lifecycle.js** - Lifecycle hooks (onInit, onDestroy)
+- **js-circular-dependency.js** - Circular dependency resolution (singleton, scoped, transient)
 
 Run JavaScript examples:
 
 ```bash
 node examples/js-basic.js
 node examples/js-advanced.js
+node examples/js-express.js
+node examples/js-lifecycle.js
+node examples/js-circular-dependency.js
 ```
 
 ## Comparison with .NET Core Dependency Injection

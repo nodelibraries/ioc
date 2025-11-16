@@ -1,4 +1,4 @@
-import { ServiceCollection, ServiceProvider } from '../infusio';
+import { ServiceCollection, ServiceProvider } from '../ioc-container';
 
 /**
  * Interface Registration Example

@@ -73,9 +73,9 @@ services.addValue('Config', config);
 services.addSingleton(ILoggerKeyedToken, FileLogger, []);
 services.addSingleton(ILoggerKeyedToken, ConsoleLogger, []);
 
-// 5. Keyed services (register with explicit dependencies)
-services.addKeyedSingleton(ILoggerKeyedToken, 'file', FileLogger, []);
-services.addKeyedSingleton(ILoggerKeyedToken, 'console', ConsoleLogger, []);
+// 5. Keyed services
+services.addKeyedSingleton(ILoggerKeyedToken, FileLogger, 'file');
+services.addKeyedSingleton(ILoggerKeyedToken, ConsoleLogger, 'console');
 
 // 6. TryAdd pattern (safe registration)
 services.tryAddSingleton(ILoggerToken, FileLogger); // Won't override existing Logger

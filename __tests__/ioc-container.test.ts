@@ -1,4 +1,4 @@
-import { ServiceCollection, ServiceProvider, ServiceLifetime, type ServiceFactory } from '../infusio';
+import { ServiceCollection, ServiceProvider, ServiceLifetime, type ServiceFactory } from '../ioc-container';
 
 describe('ServiceCollection', () => {
   describe('addSingleton', () => {

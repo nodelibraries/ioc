@@ -1,4 +1,4 @@
-import { ServiceCollection, ServiceProvider, ServiceFactory } from '../infusio';
+import { ServiceCollection, ServiceProvider, ServiceFactory } from '../ioc-container';
 
 /**
  * Factory Pattern Example

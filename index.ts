@@ -6,4 +6,4 @@ export {
   type ServiceFactory,
   type Token,
   type Newable,
-} from './infusio';
+} from './ioc-container';

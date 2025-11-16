@@ -1,5 +1,5 @@
 import express, { Request, Response, NextFunction } from 'express';
-import { ServiceCollection, ServiceProvider } from '../infusio';
+import { ServiceCollection, ServiceProvider } from '../ioc-container';
 
 /**
  * Advanced Express Integration Example
