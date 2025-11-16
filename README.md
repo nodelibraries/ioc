@@ -1,4 +1,4 @@
-# @nodelibs/ioc
+# @nodelibraries/ioc
 
 > Type-Safe IoC Container for Node.js, TypeScript and JavaScript
 
@@ -26,13 +26,13 @@ A lightweight, type-safe Inversion of Control (IoC) container inspired by .NET C
 ## Installation
 
 ```bash
-npm install @nodelibs/ioc
+npm install @nodelibraries/ioc
 ```
 
-**Note:** If the `@nodelibs` scope is not available, you can use the unscoped package:
+**Note:** If the `@nodelibraries` scope is not available, you can use the unscoped package:
 
 ```bash
-npm install nodelibs-ioc
+npm install @nodelibraries/ioc
 ```
 
 ## Quick Start
@@ -40,7 +40,7 @@ npm install nodelibs-ioc
 ### TypeScript
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 // Define interfaces
 interface ILogger {
@@ -100,6 +100,10 @@ class Logger {
 
 class UserService {
   constructor(logger) {
+    // Optional: Runtime validation for safety in JavaScript
+    if (!logger || typeof logger.log !== 'function') {
+      throw new TypeError('UserService requires a valid logger');
+    }
     this.logger = logger;
   }
 
@@ -139,15 +143,41 @@ import { ServiceCollection, ServiceProvider } from 'nodelibs-ioc';
 // ... same as TypeScript example above
 ```
 
-## Why @nodelibs/ioc?
+### JavaScript Safety Notes
 
-**@nodelibs/ioc** - A lightweight, type-safe IoC container designed for Node.js and TypeScript, inspired by .NET Core's dependency injection system. Seamlessly inject dependencies into your application with zero dependencies and no decorators required.
+**⚠️ Important:** JavaScript doesn't provide compile-time type safety. For safer code:
+
+1. **Add runtime validation** in constructors (as shown above)
+2. **Use TypeScript** for compile-time type safety
+3. **Use JSDoc** for better IDE support:
+   ```javascript
+   /**
+    * @typedef {Object} ILogger
+    * @property {function(string): void} log
+    */
+   
+   /**
+    * @param {ILogger} logger
+    */
+   constructor(logger) {
+     this.logger = logger;
+   }
+   ```
+
+**✅ IoC Container Protection:**
+- The container ensures dependencies are resolved before construction
+- Missing dependencies throw errors at resolution time
+- You don't need to manually check for `null`/`undefined` if using the container correctly
+
+## Why @nodelibraries/ioc?
+
+**@nodelibraries/ioc** - A lightweight, type-safe IoC container designed for Node.js and TypeScript, inspired by .NET Core's dependency injection system. Seamlessly inject dependencies into your application with zero dependencies and no decorators required.
 
 > 💡 **Learn more**: Check out our [documentation](https://nodelibs.github.io/ioc/guide/about) to understand our philosophy and design principles.
 
 ### 🚫 No Decorators - Clean Code
 
-Unlike many IoC containers, `@nodelibs/ioc` doesn't require decorators or annotations that pollute your code. Your classes remain clean and framework-agnostic:
+Unlike many IoC containers, `@nodelibraries/ioc` doesn't require decorators or annotations that pollute your code. Your classes remain clean and framework-agnostic:
 
 ```typescript
 // ❌ Other containers require decorators
@@ -157,7 +187,7 @@ class UserService {
   // ...
 }
 
-// ✅ @nodelibs/ioc - No decorators needed!
+// ✅ @nodelibraries/ioc - No decorators needed!
 class UserService {
   constructor(private logger: ILogger) {
     // Clean, simple constructor injection
@@ -241,7 +271,7 @@ services.addTransient<IValidator>(IValidatorToken, Validator);
 
 ```typescript
 import express from 'express';
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 const services = new ServiceCollection();
 // ... register services ...
