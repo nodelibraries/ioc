@@ -33,10 +33,11 @@ addSingleton<T>(token: Token<T>, factory: ServiceFactory<T>): this;
 // 1. Class registration (simplest) - no dependencies (constructor has no parameters)
 services.addSingleton(Logger);
 
-// 2. Interface registration - dependencies default to []
+// 2. Interface registration - no dependencies (Logger constructor has no parameters)
 services.addSingleton<ILogger>(ILoggerToken, Logger);
 
 // 3. With explicit dependencies
+// ⚠️ IMPORTANT: If UserService constructor requires ILogger, you MUST provide [ILoggerToken]
 services.addSingleton<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
 
 // 4. Factory pattern - complex initialization
