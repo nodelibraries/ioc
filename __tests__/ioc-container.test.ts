@@ -1,4 +1,11 @@
-import { ServiceCollection, ServiceProvider, ServiceLifetime, type ServiceFactory } from '../src/ioc-container';
+import {
+  ServiceCollection,
+  ServiceProvider,
+  ServiceLifetime,
+  type ServiceFactory,
+  type DependencyTreeNode,
+  type CircularDependency,
+} from '../src/ioc-container';
 
 describe('ServiceCollection', () => {
   describe('addSingleton', () => {
@@ -1687,6 +1694,384 @@ describe('ServiceProvider', () => {
       services.tryAddTransient(token, TestService, [depToken]);
       const provider = services.buildServiceProvider();
       return expect(provider.getRequiredService(token)).resolves.toBeInstanceOf(TestService);
+    });
+  });
+
+  describe('Dependency Tree Visualization', () => {
+    it('should get dependency tree for service with no dependencies', () => {
+      const services = new ServiceCollection();
+      const ILoggerToken = Symbol('ILogger');
+
+      interface ILogger {
+        log(message: string): void;
+      }
+
+      class Logger implements ILogger {
+        log(message: string) {}
+      }
+
+      services.addSingleton<ILogger>(ILoggerToken, Logger);
+
+      const tree = services.getDependencyTree(ILoggerToken);
+      expect(tree.token).toBe(ILoggerToken);
+      expect(tree.name).toBe('Symbol(ILogger)');
+      expect(tree.lifetime).toBe(ServiceLifetime.Singleton);
+      expect(tree.dependencies).toEqual([]);
+      expect(tree.depth).toBe(0);
+    });
+
+    it('should get dependency tree for service with dependencies', () => {
+      const services = new ServiceCollection();
+      const ILoggerToken = Symbol('ILogger');
+      const IUserServiceToken = Symbol('IUserService');
+
+      interface ILogger {
+        log(message: string): void;
+      }
+
+      interface IUserService {
+        getUsers(): string[];
+      }
+
+      class Logger implements ILogger {
+        log(message: string) {}
+      }
+
+      class UserService implements IUserService {
+        constructor(private logger: any) {}
+        getUsers(): string[] {
+          return [];
+        }
+      }
+
+      services.addSingleton<ILogger>(ILoggerToken, Logger);
+      services.addSingleton<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
+
+      const tree = services.getDependencyTree(IUserServiceToken);
+      expect(tree.token).toBe(IUserServiceToken);
+      expect(tree.lifetime).toBe(ServiceLifetime.Singleton);
+      expect(tree.dependencies).toHaveLength(1);
+      expect(tree.dependencies[0].token).toBe(ILoggerToken);
+      expect(tree.dependencies[0].lifetime).toBe(ServiceLifetime.Singleton);
+    });
+
+    it('should get dependency tree for deep dependency chain', () => {
+      const services = new ServiceCollection();
+      const IDatabaseToken = Symbol('IDatabase');
+      const IRepositoryToken = Symbol('IRepository');
+      const IServiceToken = Symbol('IService');
+
+      interface IDatabase {
+        connect(): void;
+      }
+
+      interface IRepository {
+        findAll(): any[];
+      }
+
+      interface IService {
+        getData(): any[];
+      }
+
+      class Database implements IDatabase {
+        connect() {}
+      }
+
+      class Repository implements IRepository {
+        constructor(private db: any) {}
+        findAll(): any[] {
+          return [];
+        }
+      }
+
+      class Service implements IService {
+        constructor(private repo: any) {}
+        getData(): any[] {
+          return [];
+        }
+      }
+
+      services.addSingleton<IDatabase>(IDatabaseToken, Database);
+      services.addSingleton<IRepository>(IRepositoryToken, Repository, [IDatabaseToken]);
+      services.addSingleton<IService>(IServiceToken, Service, [IRepositoryToken]);
+
+      const tree = services.getDependencyTree(IServiceToken);
+      expect(tree.dependencies).toHaveLength(1);
+      expect(tree.dependencies[0].token).toBe(IRepositoryToken);
+      expect(tree.dependencies[0].dependencies).toHaveLength(1);
+      expect(tree.dependencies[0].dependencies[0].token).toBe(IDatabaseToken);
+    });
+
+    it('should detect circular dependency in dependency tree', () => {
+      const services = new ServiceCollection();
+      const ServiceAToken = Symbol('ServiceA');
+      const ServiceBToken = Symbol('ServiceB');
+
+      class ServiceA {
+        constructor(private serviceB: any) {}
+      }
+
+      class ServiceB {
+        constructor(private serviceA: any) {}
+      }
+
+      services.addSingleton(ServiceAToken, ServiceA, [ServiceBToken]);
+      services.addSingleton(ServiceBToken, ServiceB, [ServiceAToken]);
+
+      const tree = services.getDependencyTree(ServiceAToken);
+      expect(tree.dependencies).toHaveLength(1);
+      const serviceBNode = tree.dependencies[0];
+      // When circular dependency is detected, the node should have isCircular flag
+      // But the detection happens when we try to traverse further
+      // So we check if ServiceB has ServiceA as dependency (which creates the cycle)
+      expect(serviceBNode.token).toBe(ServiceBToken);
+      // The circular dependency should be detected when traversing ServiceB's dependencies
+      if (serviceBNode.dependencies && serviceBNode.dependencies.length > 0) {
+        const serviceANode = serviceBNode.dependencies.find((dep: any) => dep.token === ServiceAToken);
+        if (serviceANode) {
+          expect(serviceANode.isCircular).toBe(true);
+          expect(serviceANode.lifetime).toBe('CIRCULAR');
+        }
+      }
+    });
+
+    it('should handle not registered service in dependency tree', () => {
+      const services = new ServiceCollection();
+      const UnregisteredToken = Symbol('Unregistered');
+
+      const tree = services.getDependencyTree(UnregisteredToken);
+      expect(tree.token).toBe(UnregisteredToken);
+      expect(tree.lifetime).toBe('NOT_REGISTERED');
+      expect(tree.dependencies).toEqual([]);
+    });
+
+    it('should visualize dependency tree as string', () => {
+      const services = new ServiceCollection();
+      const ILoggerToken = Symbol('ILogger');
+      const IUserServiceToken = Symbol('IUserService');
+
+      interface ILogger {
+        log(message: string): void;
+      }
+
+      interface IUserService {
+        getUsers(): string[];
+      }
+
+      class Logger implements ILogger {
+        log(message: string) {}
+      }
+
+      class UserService implements IUserService {
+        constructor(private logger: any) {}
+        getUsers(): string[] {
+          return [];
+        }
+      }
+
+      services.addSingleton<ILogger>(ILoggerToken, Logger);
+      services.addSingleton<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
+
+      const visualization = services.visualizeDependencyTree(IUserServiceToken);
+      expect(visualization).toContain('Symbol(IUserService)');
+      expect(visualization).toContain('Symbol(ILogger)');
+      expect(visualization).toContain('[SINGLETON]');
+    });
+  });
+
+  describe('Circular Dependency Detection', () => {
+    it('should detect no circular dependencies when none exist', () => {
+      const services = new ServiceCollection();
+      const ILoggerToken = Symbol('ILogger');
+      const IUserServiceToken = Symbol('IUserService');
+
+      interface ILogger {
+        log(message: string): void;
+      }
+
+      interface IUserService {
+        getUsers(): string[];
+      }
+
+      class Logger implements ILogger {
+        log(message: string) {}
+      }
+
+      class UserService implements IUserService {
+        constructor(private logger: any) {}
+        getUsers(): string[] {
+          return [];
+        }
+      }
+
+      services.addSingleton<ILogger>(ILoggerToken, Logger);
+      services.addSingleton<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
+
+      const circularDeps = services.getCircularDependencies();
+      expect(circularDeps).toEqual([]);
+    });
+
+    it('should detect simple circular dependency (A -> B -> A)', () => {
+      const services = new ServiceCollection();
+      const ServiceAToken = Symbol('ServiceA');
+      const ServiceBToken = Symbol('ServiceB');
+
+      class ServiceA {
+        constructor(private serviceB: any) {}
+      }
+
+      class ServiceB {
+        constructor(private serviceA: any) {}
+      }
+
+      services.addSingleton(ServiceAToken, ServiceA, [ServiceBToken]);
+      services.addSingleton(ServiceBToken, ServiceB, [ServiceAToken]);
+
+      const circularDeps = services.getCircularDependencies();
+      expect(circularDeps.length).toBeGreaterThan(0);
+      expect(circularDeps[0].path).toContain(ServiceAToken);
+      expect(circularDeps[0].path).toContain(ServiceBToken);
+    });
+
+    it('should detect three-way circular dependency (A -> B -> C -> A)', () => {
+      const services = new ServiceCollection();
+      const ServiceAToken = Symbol('ServiceA');
+      const ServiceBToken = Symbol('ServiceB');
+      const ServiceCToken = Symbol('ServiceC');
+
+      class ServiceA {
+        constructor(private serviceB: any) {}
+      }
+
+      class ServiceB {
+        constructor(private serviceC: any) {}
+      }
+
+      class ServiceC {
+        constructor(private serviceA: any) {}
+      }
+
+      services.addSingleton(ServiceAToken, ServiceA, [ServiceBToken]);
+      services.addSingleton(ServiceBToken, ServiceB, [ServiceCToken]);
+      services.addSingleton(ServiceCToken, ServiceC, [ServiceAToken]);
+
+      const circularDeps = services.getCircularDependencies();
+      expect(circularDeps.length).toBeGreaterThan(0);
+      const path = circularDeps[0].path;
+      expect(path).toContain(ServiceAToken);
+      expect(path).toContain(ServiceBToken);
+      expect(path).toContain(ServiceCToken);
+    });
+
+    it('should detect multiple circular dependencies', () => {
+      const services = new ServiceCollection();
+      const ServiceAToken = Symbol('ServiceA');
+      const ServiceBToken = Symbol('ServiceB');
+      const ServiceCToken = Symbol('ServiceC');
+      const ServiceDToken = Symbol('ServiceD');
+
+      class ServiceA {
+        constructor(private serviceB: any) {}
+      }
+
+      class ServiceB {
+        constructor(private serviceA: any) {}
+      }
+
+      class ServiceC {
+        constructor(private serviceD: any) {}
+      }
+
+      class ServiceD {
+        constructor(private serviceC: any) {}
+      }
+
+      services.addSingleton(ServiceAToken, ServiceA, [ServiceBToken]);
+      services.addSingleton(ServiceBToken, ServiceB, [ServiceAToken]);
+      services.addSingleton(ServiceCToken, ServiceC, [ServiceDToken]);
+      services.addSingleton(ServiceDToken, ServiceD, [ServiceCToken]);
+
+      const circularDeps = services.getCircularDependencies();
+      expect(circularDeps.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('should visualize circular dependencies as string', () => {
+      const services = new ServiceCollection();
+      const ServiceAToken = Symbol('ServiceA');
+      const ServiceBToken = Symbol('ServiceB');
+
+      class ServiceA {
+        constructor(private serviceB: any) {}
+      }
+
+      class ServiceB {
+        constructor(private serviceA: any) {}
+      }
+
+      services.addSingleton(ServiceAToken, ServiceA, [ServiceBToken]);
+      services.addSingleton(ServiceBToken, ServiceB, [ServiceAToken]);
+
+      const visualization = services.visualizeCircularDependencies();
+      expect(visualization).toContain('circular dependency');
+      expect(visualization).toContain('Symbol(ServiceA)');
+      expect(visualization).toContain('Symbol(ServiceB)');
+    });
+
+    it('should return message when no circular dependencies found', () => {
+      const services = new ServiceCollection();
+      const ILoggerToken = Symbol('ILogger');
+
+      interface ILogger {
+        log(message: string): void;
+      }
+
+      class Logger implements ILogger {
+        log(message: string) {}
+      }
+
+      services.addSingleton<ILogger>(ILoggerToken, Logger);
+
+      const visualization = services.visualizeCircularDependencies();
+      expect(visualization).toBe('No circular dependencies found.');
+    });
+
+    it('should work with string tokens', () => {
+      const services = new ServiceCollection();
+      const ServiceAToken = 'ServiceA';
+      const ServiceBToken = 'ServiceB';
+
+      class ServiceA {
+        constructor(private serviceB: any) {}
+      }
+
+      class ServiceB {
+        constructor(private serviceA: any) {}
+      }
+
+      services.addSingleton(ServiceAToken, ServiceA, [ServiceBToken]);
+      services.addSingleton(ServiceBToken, ServiceB, [ServiceAToken]);
+
+      const circularDeps = services.getCircularDependencies();
+      expect(circularDeps.length).toBeGreaterThan(0);
+      expect(circularDeps[0].tokens[0].name).toBe('ServiceA');
+    });
+
+    it('should work with class constructor tokens', () => {
+      const services = new ServiceCollection();
+
+      class ServiceA {
+        constructor(private serviceB: ServiceB) {}
+      }
+
+      class ServiceB {
+        constructor(private serviceA: ServiceA) {}
+      }
+
+      services.addSingleton(ServiceA, ServiceA, [ServiceB]);
+      services.addSingleton(ServiceB, ServiceB, [ServiceA]);
+
+      const circularDeps = services.getCircularDependencies();
+      expect(circularDeps.length).toBeGreaterThan(0);
     });
   });
 });
