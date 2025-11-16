@@ -561,11 +561,13 @@ export class ServiceProvider {
         // Create a unique key for this descriptor (token + implementation/factory)
         // This allows multiple implementations with the same token to have separate instances
         // Use provided descriptorKey if available, otherwise create it
-        const finalDescriptorKey = descriptorKey || (desc.implementation
-          ? `${token.toString()}:${desc.implementation.name || desc.implementation.toString()}`
-          : desc.factory
-          ? `${token.toString()}:factory:${desc.factory.toString()}`
-          : `${token.toString()}:value:${desc.value?.toString()}`);
+        const finalDescriptorKey =
+          descriptorKey ||
+          (desc.implementation
+            ? `${token.toString()}:${desc.implementation.name || desc.implementation.toString()}`
+            : desc.factory
+            ? `${token.toString()}:factory:${desc.factory.toString()}`
+            : `${token.toString()}:value:${desc.value?.toString()}`);
 
         // Check if this specific descriptor already has an instance (for multiple implementations with same token)
         // Use a Map with string keys for reliable comparison
@@ -748,7 +750,9 @@ export class ServiceProvider {
       // We can't know in advance if there will be a circular dependency
       // Create placeholder using Object.create to avoid constructor call
       // This allows circular dependencies to reference the instance being constructed
-      instance = Object.create(desc.implementation.prototype);
+      // Ensure prototype exists (for JavaScript compatibility)
+      const prototype = desc.implementation.prototype || Object.prototype;
+      instance = Object.create(prototype);
       // Use instanceKey if provided (for multiple implementations support), otherwise use token
       const key = instanceKey !== undefined ? instanceKey : token;
       resolver.constructingInstances.set(key as any, instance);
