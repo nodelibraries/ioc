@@ -10,7 +10,7 @@
  * - TryAdd pattern
  */
 
-const { ServiceCollection, ServiceProvider } = require('../dist/index.js');
+const { ServiceCollection, ServiceProvider } = require('../../dist/index.js');
 
 // Define services
 class Logger {

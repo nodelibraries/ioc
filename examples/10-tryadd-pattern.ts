@@ -1,4 +1,4 @@
-import { ServiceCollection, ServiceProvider } from '../ioc-container';
+import { ServiceCollection, ServiceProvider } from '../src/ioc-container';
 
 /**
  * TryAdd Pattern Example

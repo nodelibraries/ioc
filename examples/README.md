@@ -6,11 +6,11 @@ This directory contains runnable examples demonstrating various features of `@no
 
 The library works with both TypeScript and JavaScript. JavaScript examples are available:
 
-- **js-basic.js** - Basic JavaScript usage (registration, resolution, scopes, dependency injection)
-- **js-advanced.js** - Advanced JavaScript features (factory, keyed services, multiple implementations, value registration)
-- **js-express.js** - Express.js integration (request-scoped services, middleware, routes)
-- **js-lifecycle.js** - Lifecycle hooks (onInit, onDestroy)
-- **js-circular-dependency.js** - Circular dependency resolution (singleton, scoped, transient)
+- **js/js-basic.js** - Basic JavaScript usage (registration, resolution, scopes, dependency injection)
+- **js/js-advanced.js** - Advanced JavaScript features (factory, keyed services, multiple implementations, value registration)
+- **js/js-express.js** - Express.js integration (request-scoped services, middleware, routes)
+- **js/js-lifecycle.js** - Lifecycle hooks (onInit, onDestroy)
+- **js/js-circular-dependency.js** - Circular dependency resolution (singleton, scoped, transient)
 
 Run JavaScript examples:
 
@@ -19,11 +19,11 @@ Run JavaScript examples:
 npm run build
 
 # Then run JavaScript examples
-node examples/js-basic.js
-node examples/js-advanced.js
-node examples/js-express.js
-node examples/js-lifecycle.js
-node examples/js-circular-dependency.js
+node examples/js/js-basic.js
+node examples/js/js-advanced.js
+node examples/js/js-express.js
+node examples/js/js-lifecycle.js
+node examples/js/js-circular-dependency.js
 ```
 
 **Note:**

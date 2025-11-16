@@ -157,7 +157,7 @@ Has Unknown? No
 ## Run This Example
 
 ```bash
-node examples/js-advanced.js
+node examples/js/js-advanced.js
 ```
 
 ## Key Points

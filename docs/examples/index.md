@@ -1223,26 +1223,26 @@ The library works with both TypeScript and JavaScript. All features are availabl
 
 ### JS Basic Example
 
-**File:** [js-basic.js](../../examples/js-basic.js) | [Documentation](./js-basic)
+**File:** [js/js-basic.js](../../examples/js/js-basic.js) | [Documentation](./js-basic)
 
 Basic JavaScript usage - service registration, resolution, dependency injection, and scopes.
 
 **Run:**
 
 ```bash
-node examples/js-basic.js
+node examples/js/js-basic.js
 ```
 
 ### JS Advanced Example
 
-**File:** [js-advanced.js](../../examples/js-advanced.js) | [Documentation](./js-advanced)
+**File:** [js/js-advanced.js](../../examples/js/js-advanced.js) | [Documentation](./js-advanced)
 
 Advanced JavaScript features - factory pattern, keyed services, multiple implementations, value registration, service checking, and TryAdd pattern.
 
 **Run:**
 
 ```bash
-node examples/js-advanced.js
+node examples/js/js-advanced.js
 ```
 
 **Key Points:**
@@ -1260,7 +1260,7 @@ node examples/js-advanced.js
 4. **Explore advanced features**: Examples 7-13 cover more sophisticated patterns
 5. **Handle edge cases**: Examples 14-15 demonstrate complex scenarios
 6. **Build real applications**: Examples 16-18 show practical usage
-7. **JavaScript users**: Check out `js-basic.js` and `js-advanced.js` for JavaScript examples
+7. **JavaScript users**: Check out `js/js-basic.js` and `js/js-advanced.js` for JavaScript examples
 
 ## Notes
 

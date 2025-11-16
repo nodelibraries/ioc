@@ -8,7 +8,7 @@
  * - Scopes
  */
 
-const { ServiceCollection, ServiceProvider, ServiceLifetime } = require('../dist/index.js');
+const { ServiceCollection, ServiceProvider, ServiceLifetime } = require('../../dist/index.js');
 
 // Define services
 class Logger {

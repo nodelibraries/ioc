@@ -73,7 +73,7 @@ Scoped Users: [ 'Alice', 'Bob', 'Charlie' ]
 ## Run This Example
 
 ```bash
-node examples/js-basic.js
+node examples/js/js-basic.js
 ```
 
 ## Key Points

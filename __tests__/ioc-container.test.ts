@@ -1,4 +1,4 @@
-import { ServiceCollection, ServiceProvider, ServiceLifetime, type ServiceFactory } from '../ioc-container';
+import { ServiceCollection, ServiceProvider, ServiceLifetime, type ServiceFactory } from '../src/ioc-container';
 
 describe('ServiceCollection', () => {
   describe('addSingleton', () => {

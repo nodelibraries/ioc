@@ -7,7 +7,7 @@
  * - Transient circular dependencies
  */
 
-const { ServiceCollection, ServiceProvider } = require('../dist/index.js');
+const { ServiceCollection, ServiceProvider } = require('../../dist/index.js');
 
 // Define services with circular dependencies
 class ServiceA {

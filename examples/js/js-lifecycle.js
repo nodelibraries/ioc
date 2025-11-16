@@ -6,7 +6,7 @@
  * - onDestroy() - called when scope is disposed
  */
 
-const { ServiceCollection, ServiceProvider } = require('../dist/index.js');
+const { ServiceCollection, ServiceProvider } = require('../../dist/index.js');
 
 // Define services with lifecycle hooks
 class DatabaseConnection {
