@@ -47,6 +47,7 @@ console.log(JSON.stringify(tree, null, 2));
 Returns a tree structure showing all dependencies for a specific service token.
 
 **Returns:**
+
 - `DependencyTreeNode` object with:
   - `token`: The service token
   - `name`: Human-readable name
@@ -74,4 +75,3 @@ npx ts-node examples/18-dependency-tree.ts
 ```
 
 **Full Example:** [Source Code](../../examples/18-dependency-tree.ts)
-
