@@ -108,9 +108,9 @@ const provider = services.buildServiceProvider();
     consoleLogger.log('Console logger message');
 
     console.log('\n=== 6. Service Checking ===');
-    console.log('Has Logger?', provider.isService(ILoggerToken) ? 'Yes' : 'No');
-    console.log('Has Cache?', provider.isService(ICacheToken) ? 'Yes' : 'No');
-    console.log('Has Unknown?', provider.isService(Symbol('Unknown')) ? 'Yes' : 'No');
+    console.log('Has Logger?', (await provider.isService(ILoggerToken)) ? 'Yes' : 'No');
+    console.log('Has Cache?', (await provider.isService(ICacheToken)) ? 'Yes' : 'No');
+    console.log('Has Unknown?', (await provider.isService(Symbol('Unknown'))) ? 'Yes' : 'No');
 
     console.log('\n=== 7. TryAdd Verification ===');
     // Logger should still be the original Logger, not FileLogger
