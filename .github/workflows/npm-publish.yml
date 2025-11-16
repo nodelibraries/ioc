@@ -1,5 +1,7 @@
 name: NPM Publish
 
+# Automatically publishes to npm on push to main branch
+
 on:
   push:
     branches:
@@ -144,11 +146,11 @@ jobs:
           echo "Publishing version: $VERSION"
           echo "Package: @nodelibraries/ioc"
           echo "Registry: https://registry.npmjs.org"
-          
+
           # Try to publish with detailed error output
           PUBLISH_OUTPUT=$(npm publish --access public --registry=https://registry.npmjs.org 2>&1)
           PUBLISH_EXIT=$?
-          
+
           if [ $PUBLISH_EXIT -eq 0 ]; then
             echo "✅ Successfully published @nodelibraries/ioc@$VERSION"
             echo "$PUBLISH_OUTPUT"
