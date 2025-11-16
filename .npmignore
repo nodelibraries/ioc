@@ -1,0 +1,43 @@
+# Source files
+*.ts
+!*.d.ts
+
+# Configuration
+tsconfig.json
+.gitignore
+.npmignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+.nyc_output/
+test/
+tests/
+*.test.ts
+*.spec.ts
+
+# Examples
+example/
+examples/
+demo/
+
+# Documentation (keep README.md and LICENSE)
+docs/
+
+# Temporary files
+*.tmp
+*.temp
+

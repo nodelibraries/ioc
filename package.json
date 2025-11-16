@@ -1,0 +1,15 @@
+{
+  "name": "@nodelibs/ioc",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "docs:dev": "cd docs && npm run dev",
+    "docs:build": "cd docs && npm run build",
+    "docs:preview": "cd docs && npm run preview"
+  },
+  "keywords": [],
+  "author": "ylcnfrht",
+  "license": "ISC",
+  "description": "Type-Safe IoC Container for Node.js and TypeScript, inspired by .NET Core"
+}
