@@ -37,15 +37,15 @@ Built with TypeScript for full type safety • Zero dependencies • No decorato
 - 🗑️ **Service Management** - Remove, replace, and manage services dynamically
 - 🔄 **Lifecycle Hooks** - `onInit()` and `onDestroy()` callbacks for initialization and cleanup
 - 💎 **Value Registration** - Register pre-created values (JSON, primitives, instances)
-- 🔄 **Circular Dependencies** - Automatic resolution for all lifetimes (better than .NET Core)
+- 🔄 **Circular Dependencies** - Automatic resolution for all lifetimes (including Transient, unlike .NET Core)
 - 📊 **Dependency Tree Visualization** - Visualize and analyze service dependency trees
 - 🔍 **Circular Dependency Detection** - Detect and visualize all circular dependencies
 
 ### JavaScript Support
 
 - 📜 **Full JavaScript Support** - All features work in JavaScript (CommonJS and ES Modules)
-- ⚠️ **Runtime Validation** - Recommended for JavaScript projects
-- 🔧 **JSDoc Support** - Type hints via JSDoc comments
+- 🔧 **JSDoc Support** - Comprehensive JSDoc comments for IntelliSense and autocomplete
+- ⚠️ **Runtime Validation Recommended** - Use `validateOnBuild` and `validateScopes` for better error detection
 
 ---
 
@@ -122,9 +122,6 @@ class Logger {
 
 class UserService {
   constructor(logger) {
-    if (!logger || typeof logger.log !== 'function') {
-      throw new TypeError('UserService requires a valid logger');
-    }
     this.logger = logger;
   }
 
@@ -138,6 +135,7 @@ const services = new ServiceCollection();
 const ILoggerToken = Symbol('ILogger');
 const IUserServiceToken = Symbol('IUserService');
 
+// ⚠️ IMPORTANT: In JavaScript, you MUST provide dependencies array if constructor has parameters
 services.addSingleton(ILoggerToken, Logger);
 services.addScoped(IUserServiceToken, UserService, [ILoggerToken]);
 
@@ -155,16 +153,16 @@ const provider = services.buildServiceProvider();
 
 ## 📚 Documentation
 
-- **[Getting Started Guide](https://nodelibraries.github.io/ioc/guide/)** - Learn the basics
-- **[API Reference](https://nodelibraries.github.io/ioc/api/)** - Complete API documentation
-- **[Examples](./examples)** - 19+ practical examples
-- **[JavaScript Guide](https://nodelibraries.github.io/ioc/guide/)** - JavaScript-specific documentation
+- **[📖 Getting Started Guide](https://nodelibraries.github.io/ioc/guide/)** - Learn the basics
+- **[📚 API Reference](https://nodelibraries.github.io/ioc/api/)** - Complete API documentation
+- **[💡 Examples](./examples)** - 19+ practical examples with code
+- **[🔍 JavaScript Support](https://nodelibraries.github.io/ioc/guide/)** - JavaScript-specific documentation
 
 ---
 
 ## 🎯 Why @nodelibraries/ioc?
 
-### Clean & Simple
+### ✨ Clean & Simple
 
 No decorators, no annotations, no framework lock-in. Your code remains pure and framework-agnostic.
 
@@ -174,7 +172,7 @@ services.addSingleton<ILogger>(ILoggerToken, Logger);
 services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
 ```
 
-### Type-Safe by Design
+### 🔒 Type-Safe by Design
 
 Built from the ground up for TypeScript. Full type inference, autocomplete, and compile-time safety.
 
@@ -184,69 +182,37 @@ const logger = await provider.getRequiredService<ILogger>(ILoggerToken);
 logger.log('Hello'); // ✅ TypeScript knows this method exists
 ```
 
-### Production Ready
+### 🚀 Production Ready
 
-Battle-tested features including scope validation, lifecycle hooks, and comprehensive error handling.
+Battle-tested features including scope validation, lifecycle hooks, and comprehensive error handling. Enable validation in development to catch issues early:
 
 ```typescript
-// Build with validation
+// Build with validation (recommended for development)
 const provider = services.buildServiceProvider({
-  validateScopes: true, // Catch lifetime mismatches
-  validateOnBuild: true, // Validate all dependencies
+  validateScopes: true, // Catch lifetime mismatches (e.g., scoped service in singleton)
+  validateOnBuild: true, // Validate all dependencies exist at build time
 });
 ```
 
-#### What do these options do?
-
-> **Note:** Both options default to `false`. Enable them explicitly for validation.
-
-**`validateScopes: true`** (default: `false`) - Catches lifetime mismatches at runtime:
-
-```typescript
-// ❌ ERROR: Scoped service injected into singleton
-services.addScoped<ILogger>(ILoggerToken, Logger);
-services.addSingleton<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
-
-const provider = services.buildServiceProvider({ validateScopes: true });
-// Throws: "Cannot inject scoped service 'ILogger' into singleton service 'IUserService'"
-
-// ✅ CORRECT: Scoped service used within scope
-services.addSingleton<ILogger>(ILoggerToken, Logger);
-services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
-
-const scope = provider.createScope();
-const userService = await scope.getRequiredService<IUserService>(IUserServiceToken); // ✅ Works!
-```
-
-**`validateOnBuild: true`** (default: `false`) - Validates all dependencies at build time (catches missing dependencies early):
-
-```typescript
-// ❌ ERROR: Missing dependency detected at build time
-services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
-// ILoggerToken is not registered!
-
-const provider = services.buildServiceProvider({ validateOnBuild: true });
-// Throws: "Validation failed on build: Missing dependency: ILogger required by IUserService"
-
-// ✅ CORRECT: All dependencies registered
-services.addSingleton<ILogger>(ILoggerToken, Logger);
-services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
-const provider = services.buildServiceProvider({ validateOnBuild: true }); // ✅ No errors!
-```
+> **Note:** Both options default to `false`. Enable them explicitly for validation. For detailed explanations and examples, see the [documentation](https://nodelibraries.github.io/ioc/).
 
 ### 🔄 Enhanced Circular Dependency Support
 
-Circular dependencies are automatically resolved for all service lifetimes, including Transient services (which .NET Core doesn't support).
+Circular dependencies are automatically resolved for **all service lifetimes**, including Transient services (which .NET Core doesn't support).
 
 ```typescript
-// Circular dependencies work seamlessly
+// Circular dependencies work seamlessly for Singleton, Scoped, and Transient
 class ServiceA {
   constructor(private serviceB: ServiceB) {}
 }
 
 class ServiceB {
-  constructor(private serviceA: ServiceA) {} // ✅ Works!
+  constructor(private serviceA: ServiceA) {} // ✅ Works for all lifetimes!
 }
+
+services.addSingleton(ServiceA, ServiceA, [ServiceB]);
+services.addSingleton(ServiceB, ServiceB, [ServiceA]);
+// ✅ No errors - circular dependencies are automatically resolved
 ```
 
 ---
@@ -264,43 +230,54 @@ class ServiceB {
 ### Registration Methods
 
 ```typescript
-// Class registration (no dependencies - constructor has no parameters)
+// 1. Class registration (no dependencies - constructor has no parameters)
 services.addSingleton(Logger);
 
-// Interface registration with dependencies
+// 2. Interface registration with dependencies
 // ⚠️ IMPORTANT: If UserService constructor requires ILogger, you MUST provide [ILoggerToken]
 services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
 
-// Factory pattern
+// 3. Factory pattern (supports async initialization)
 services.addSingleton<IHttpClient>(IHttpClientToken, async (provider) => {
   const config = await provider.getRequiredService<IConfig>(IConfigToken);
   return new HttpClient(config.apiUrl);
 });
 
-// Value registration
+// 4. Value registration (pre-created instances)
 services.addValue<IConfig>(IConfigToken, { apiUrl: 'https://api.example.com' });
 
-// Keyed services
+// 5. Keyed services (multiple implementations with keys)
 services.addKeyedSingleton<ICache>(ICacheToken, BigCache, 'big');
 services.addKeyedSingleton<ICache>(ICacheToken, SmallCache, 'small');
+
+// 6. TryAdd pattern (safe registration - won't override existing)
+services.tryAddSingleton<ILogger>(ILoggerToken, Logger); // Only registers if not already registered
+
+// 7. Service management
+services.remove(ILoggerToken); // Remove service
+services.replace(ILoggerToken, NewLogger); // Replace with new implementation
 ```
 
 ### Service Resolution
 
 ```typescript
-// Optional resolution (returns undefined if not found)
+// 1. Optional resolution (returns undefined if not found)
 const logger = await provider.getService<ILogger>(ILoggerToken);
+if (logger) {
+  logger.log('Service found');
+}
 
-// Required resolution (throws if not found)
+// 2. Required resolution (throws if not found)
 const userService = await provider.getRequiredService<IUserService>(IUserServiceToken);
 
-// Get all implementations
+// 3. Get all implementations (for multiple registrations)
 const writers = await provider.getServices<IMessageWriter>(IMessageWriterToken);
+// Returns array of all registered implementations
 
-// Keyed service resolution
+// 4. Keyed service resolution
 const cache = await provider.getRequiredKeyedService<ICache>(ICacheToken, 'big');
 
-// Check if service exists
+// 5. Check if service exists (without resolving)
 if (await provider.isService<ILogger>(ILoggerToken)) {
   // Service is registered
 }
@@ -315,83 +292,83 @@ if (await provider.isService<ILogger>(ILoggerToken)) {
 Visualize and analyze your service dependency trees:
 
 ```typescript
-// Visualize dependency tree
+// Visualize dependency tree as formatted string
 console.log(services.visualizeDependencyTree(IUserServiceToken));
+// Output:
 // └── Symbol(IUserService) [SINGLETON]
 //     ├── Symbol(IUserRepository) [SINGLETON]
 //     │   └── Symbol(IDatabase) [SINGLETON]
 //     └── Symbol(ILogger) [SINGLETON]
 
-// Get tree as object
+// Get tree as structured object
 const tree = services.getDependencyTree(IUserServiceToken);
+console.log(tree.dependencies); // Array of dependency nodes
 ```
 
 ### Circular Dependency Detection
 
-Detect and visualize all circular dependencies:
+Detect and visualize all circular dependencies in your service collection:
 
 ```typescript
-// Detect circular dependencies
+// Detect all circular dependencies
 const circularDeps = services.getCircularDependencies();
-console.log(services.visualizeCircularDependencies());
-// Found 1 circular dependency/ies:
-// Circular Dependency 1:
-//   Symbol(ServiceA) → Symbol(ServiceB) → Symbol(ServiceA)
+if (circularDeps.length > 0) {
+  console.log(services.visualizeCircularDependencies());
+  // Output:
+  // Found 1 circular dependency/ies:
+  // Circular Dependency 1:
+  //   Symbol(ServiceA) → Symbol(ServiceB) → Symbol(ServiceA)
+}
 ```
 
 ### Lifecycle Hooks
 
-Handle initialization and cleanup:
+Handle service initialization and cleanup with lifecycle hooks:
 
 ```typescript
 class DatabaseConnection {
   async onInit() {
+    // Called after instance creation
     await this.connect();
   }
 
   async onDestroy() {
+    // Called when scope/provider is disposed
     await this.disconnect();
   }
 }
+
+services.addScoped(DatabaseConnection);
+const scope = provider.createScope();
+const db = await scope.getRequiredService(DatabaseConnection);
+// onInit() is automatically called
+
+await scope.dispose();
+// onDestroy() is automatically called
 ```
 
 ---
 
 ## 📦 Examples
 
-We provide 19+ comprehensive examples covering all features:
+We provide **19+ comprehensive examples** covering all features:
 
-### Basic Examples (1-3)
-
-- Basic usage, interface registration, string tokens
-
-### Core Concepts (4-6)
-
-- Service lifetimes, lifecycle hooks, value registration
-
-### Advanced Features (7-13)
-
-- Generic types, factory pattern, multiple implementations, keyed services, scope validation
-
-### Complex Scenarios (14-15)
-
-- Circular dependencies, complex dependency chains
-
-### Real-World Applications (16-17)
-
-- Service management, Express.js integration
-
-### Analysis & Visualization (18-19)
-
-- Dependency tree visualization, circular dependency detection
-
-See [examples/README.md](./examples/README.md) for detailed descriptions and running instructions.
+| Category          | Examples | Topics                                                                                     |
+| ----------------- | -------- | ------------------------------------------------------------------------------------------ |
+| **Basic**         | 1-3      | Basic usage, interface registration, string tokens                                         |
+| **Core Concepts** | 4-6      | Service lifetimes, lifecycle hooks, value registration                                     |
+| **Advanced**      | 7-13     | Generic types, factory pattern, multiple implementations, keyed services, scope validation |
+| **Complex**       | 14-15    | Circular dependencies, complex dependency chains                                           |
+| **Real-World**    | 16-17    | Service management, Express.js integration                                                 |
+| **Analysis**      | 18-19    | Dependency tree visualization, circular dependency detection                               |
 
 **Run an example:**
 
 ```bash
 npx ts-node examples/1-basic.ts
 ```
+
+See [examples/README.md](./examples/README.md) for detailed descriptions and running instructions.
 
 ---
 
@@ -412,8 +389,6 @@ This container is inspired by .NET Core's dependency injection system but design
 | Circular Dependencies         | ⚠️ May fail  | ✅ Works for all lifetimes |
 | Dependency Tree Visualization | ❌           | ✅                         |
 | Circular Dependency Detection | ❌           | ✅                         |
-
-For a detailed comparison, see [COMPARISON.md](./COMPARISON.md).
 
 ---
 
