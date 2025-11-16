@@ -1,8 +1,8 @@
-# About @nodelibs/ioc
+# About @nodelibraries/ioc
 
-## What is @nodelibs/ioc?
+## What is @nodelibraries/ioc?
 
-**@nodelibs/ioc** is a lightweight, type-safe IoC container designed for Node.js and TypeScript, inspired by .NET Core's dependency injection system. It provides seamless dependency injection with zero dependencies and no decorators required.
+**@nodelibraries/ioc** is a lightweight, type-safe IoC container designed for Node.js and TypeScript, inspired by .NET Core's dependency injection system. It provides seamless dependency injection with zero dependencies and no decorators required.
 
 Our core philosophy: **precision, clarity, and seamless integration**. We believe dependency injection should be as natural and unobtrusive as possible.
 
@@ -24,7 +24,7 @@ Register services using interfaces, classes, factories, or pre-created values. C
 
 Lightweight and fast. Minimal overhead, maximum efficiency.
 
-## Why Choose @nodelibs/ioc?
+## Why Choose @nodelibraries/ioc?
 
 ### Type-Safe by Design
 
@@ -44,14 +44,14 @@ Open source, actively maintained, and designed with the community in mind.
 
 ## Comparison with Other Solutions
 
-| Feature             | @nodelibs/ioc | Other Containers |
-| ------------------- | ------------- | ---------------- |
-| Decorators Required | ❌ No         | ✅ Often Yes     |
-| Type Safety         | ✅ Full       | ⚠️ Partial       |
-| Interface Support   | ✅ Native     | ⚠️ Limited       |
-| Factory Pattern     | ✅ Built-in   | ⚠️ Varies        |
-| Scope Validation    | ✅ Yes        | ❌ Rare          |
-| Bundle Size         | ✅ Minimal    | ⚠️ Varies        |
+| Feature             | @nodelibraries/ioc | Other Containers |
+| ------------------- | ------------------ | ---------------- |
+| Decorators Required | ❌ No              | ✅ Often Yes     |
+| Type Safety         | ✅ Full            | ⚠️ Partial       |
+| Interface Support   | ✅ Native          | ⚠️ Limited       |
+| Factory Pattern     | ✅ Built-in        | ⚠️ Varies        |
+| Scope Validation    | ✅ Yes             | ❌ Rare          |
+| Bundle Size         | ✅ Minimal         | ⚠️ Varies        |
 
 ## Getting Started
 

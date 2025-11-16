@@ -1,6 +1,21 @@
 # Examples
 
-This directory contains runnable examples demonstrating various features of `@nodelibs/ioc`, ordered from basic to advanced.
+This directory contains runnable examples demonstrating various features of `@nodelibraries/ioc`, ordered from basic to advanced.
+
+## JavaScript Examples
+
+The library works with both TypeScript and JavaScript. JavaScript examples are available:
+
+- **js-basic.js** - Basic JavaScript usage (registration, resolution, scopes)
+- **js-advanced.js** - Advanced JavaScript features (factory, keyed services, multiple implementations)
+
+Run JavaScript examples:
+```bash
+node examples/js-basic.js
+node examples/js-advanced.js
+```
+
+**Note:** JavaScript examples use CommonJS `require()`. For ES Modules, use `import` syntax.
 
 ## Running Examples
 

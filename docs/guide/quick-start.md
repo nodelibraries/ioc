@@ -5,7 +5,7 @@ This guide will walk you through creating your first IoC container setup.
 ## Basic Example
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 // 1. Define interfaces
 interface ILogger {

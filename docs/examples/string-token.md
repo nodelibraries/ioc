@@ -5,7 +5,7 @@ Using string tokens instead of Symbol tokens - simpler but less type-safe.
 ## Code
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * String Token Registration Example

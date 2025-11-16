@@ -5,7 +5,7 @@ Demonstrates scope validation feature - `validateScopes` and `validateOnBuild` o
 ## Code
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * Scope Validation Example

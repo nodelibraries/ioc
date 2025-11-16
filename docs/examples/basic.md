@@ -5,7 +5,7 @@ Simplest usage of the IoC Container - class registration, service resolution, de
 ## Code
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * Basic Example - Simplest usage of the IoC Container

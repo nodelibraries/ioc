@@ -73,7 +73,7 @@ services.AddSingleton<ServiceB>();
 
 ### Key Differences
 
-| Aspect                | .NET Core                      | @nodelibs/ioc (Current)           |
+| Aspect                | .NET Core                      | @nodelibraries/ioc (Current)      |
 | --------------------- | ------------------------------ | --------------------------------- |
 | **Detection**         | Runtime (via resolution stack) | ✅ Runtime (via resolution stack) |
 | **Singleton Support** | ✅ Works                       | ✅ Works                          |
@@ -81,11 +81,11 @@ services.AddSingleton<ServiceB>();
 | **Transient Support** | ⚠️ May fail                    | ✅ Works (within same resolution) |
 | **Error Messages**    | Clear stack trace              | ✅ Clear error messages           |
 
-## How @nodelibs/ioc Handles Circular Dependencies
+## How @nodelibraries/ioc Handles Circular Dependencies
 
 ### Current Behavior
 
-**@nodelibs/ioc now supports circular dependencies for all service lifetimes** (Singleton, Scoped, and Transient). The container uses a resolution stack mechanism to detect and handle circular dependencies:
+**@nodelibraries/ioc now supports circular dependencies for all service lifetimes** (Singleton, Scoped, and Transient). The container uses a resolution stack mechanism to detect and handle circular dependencies:
 
 - ✅ **Singleton services** - Circular dependencies are fully supported
 - ✅ **Scoped services** - Circular dependencies work within the same scope
@@ -315,7 +315,7 @@ Before registering services, review your dependency graph:
 
 ### Future Improvements
 
-Future versions of `@nodelibs/ioc` may include:
+Future versions of `@nodelibraries/ioc` may include:
 
 - ✅ **Resolution stack tracking** - ✅ Implemented! Circular dependencies are now supported for Singleton and Scoped services
 - ✅ **Partial instance support** - ✅ Implemented! Partially constructed instances are used for circular dependencies

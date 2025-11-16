@@ -5,7 +5,7 @@ Demonstrates registering pre-created values (JSON objects, primitives, arrays, i
 ## Code
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * Value Registration Example

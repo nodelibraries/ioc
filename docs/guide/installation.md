@@ -8,7 +8,7 @@
 ## Install Package
 
 ```bash
-npm install @nodelibs/ioc
+npm install @nodelibraries/ioc
 ```
 
 ## TypeScript Configuration
@@ -29,12 +29,12 @@ Add the following to your `tsconfig.json`:
 Create a simple test file:
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 const services = new ServiceCollection();
 const provider = services.buildServiceProvider();
 
-console.log('@nodelibs/ioc installed successfully!');
+console.log('@nodelibraries/ioc installed successfully!');
 ```
 
 Run it:
@@ -43,7 +43,7 @@ Run it:
 npx ts-node test.ts
 ```
 
-If you see "@nodelibs/ioc installed successfully!", you're ready to go!
+If you see "@nodelibraries/ioc installed successfully!", you're ready to go!
 
 ## Next Steps
 

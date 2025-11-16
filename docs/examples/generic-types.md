@@ -5,7 +5,7 @@ Explains the purpose of generic type parameters (`<T>`) in the container - type 
 ## Code
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * Generic Type Parameters Example

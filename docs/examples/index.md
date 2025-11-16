@@ -1,6 +1,6 @@
 # Examples
 
-This section contains practical examples of using `@nodelibs/ioc`. All examples are available in the `examples/` directory and can be run directly.
+This section contains practical examples of using `@nodelibraries/ioc`. All examples are available in the `examples/` directory and can be run directly.
 
 ## Running Examples
 
@@ -45,7 +45,7 @@ Simplest usage of the IoC Container - class registration, service resolution, de
 **Code Snippet:**
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 class Logger {
   log(message: string) {
@@ -902,7 +902,7 @@ Complete example of using the IoC container with Express.js - request-scoped ser
 
 ```typescript
 import express, { Request, Response } from 'express';
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 interface ILogger {
   log(message: string): void;
@@ -1033,7 +1033,7 @@ More complex Express.js application with multiple services, middleware, authenti
 
 ```typescript
 import express, { Request, Response, NextFunction } from 'express';
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 interface ILogger {
   log(message: string, level?: string): void;

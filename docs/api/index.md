@@ -1,6 +1,6 @@
 # API Reference
 
-Complete API reference for `@nodelibs/ioc`.
+Complete API reference for `@nodelibraries/ioc`.
 
 ## Core Classes
 

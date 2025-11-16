@@ -5,7 +5,7 @@ Interface-based registration using Symbol tokens - the recommended approach for 
 ## Code
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * Interface Registration Example

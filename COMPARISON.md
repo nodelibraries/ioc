@@ -1,6 +1,6 @@
-# .NET Dependency Injection vs @nodelibs/ioc Comparison
+# .NET Dependency Injection vs @nodelibraries/ioc Comparison
 
-This document compares our `@nodelibs/ioc` implementation with .NET's built-in dependency injection system.
+This document compares our `@nodelibraries/ioc` implementation with .NET's built-in dependency injection system.
 
 ## ✅ Features We Have
 
@@ -171,30 +171,30 @@ services.AddDbContext<AppDbContext>();
 
 ## 📊 Feature Comparison Table
 
-| Feature                  | .NET DI | @nodelibs/ioc | Status |
-| ------------------------ | ------- | ------------- | ------ |
-| Basic Lifetimes          | ✅      | ✅            | ✅     |
-| Interface Registration   | ✅      | ✅            | ✅     |
-| Class Registration       | ✅      | ✅            | ✅     |
-| Type Safety              | ✅      | ✅            | ✅     |
-| TryAdd Pattern           | ✅      | ✅            | ✅     |
-| Multiple Implementations | ✅      | ✅            | ✅     |
-| Keyed Services           | ✅      | ✅            | ✅     |
-| GetRequiredKeyedService  | ✅      | ✅            | ✅     |
-| Factory Pattern          | ✅      | ✅            | ✅     |
-| Scope Validation         | ✅      | ✅            | ✅     |
-| ValidateOnBuild          | ✅      | ✅            | ✅     |
-| Service Checking         | ✅      | ✅            | ✅     |
-| Service Management       | ✅      | ✅            | ✅     |
-| Constructor Selection    | ✅      | ⚠️            | ⚠️     |
-| Open Generics            | ✅      | ❌            | ❌     |
-| Service Descriptor       | ✅      | ❌            | ❌     |
-| IDisposable Support      | ✅      | ⚠️            | ⚠️     |
-| Extension Methods        | ✅      | ❌            | ❌     |
-| Value Registration       | ✅      | ✅            | ✅     |
-| Lifecycle Hooks          | ❌      | ✅            | ✅     |
-| No Decorators            | ✅      | ✅            | ✅     |
-| Circular Dependencies    | ✅      | ✅            | ✅     |
+| Feature                  | .NET DI | @nodelibraries/ioc | Status |
+| ------------------------ | ------- | ------------------ | ------ |
+| Basic Lifetimes          | ✅      | ✅                 | ✅     |
+| Interface Registration   | ✅      | ✅                 | ✅     |
+| Class Registration       | ✅      | ✅                 | ✅     |
+| Type Safety              | ✅      | ✅                 | ✅     |
+| TryAdd Pattern           | ✅      | ✅                 | ✅     |
+| Multiple Implementations | ✅      | ✅                 | ✅     |
+| Keyed Services           | ✅      | ✅                 | ✅     |
+| GetRequiredKeyedService  | ✅      | ✅                 | ✅     |
+| Factory Pattern          | ✅      | ✅                 | ✅     |
+| Scope Validation         | ✅      | ✅                 | ✅     |
+| ValidateOnBuild          | ✅      | ✅                 | ✅     |
+| Service Checking         | ✅      | ✅                 | ✅     |
+| Service Management       | ✅      | ✅                 | ✅     |
+| Constructor Selection    | ✅      | ⚠️                 | ⚠️     |
+| Open Generics            | ✅      | ❌                 | ❌     |
+| Service Descriptor       | ✅      | ❌                 | ❌     |
+| IDisposable Support      | ✅      | ⚠️                 | ⚠️     |
+| Extension Methods        | ✅      | ❌                 | ❌     |
+| Value Registration       | ✅      | ✅                 | ✅     |
+| Lifecycle Hooks          | ❌      | ✅                 | ✅     |
+| No Decorators            | ✅      | ✅                 | ✅     |
+| Circular Dependencies    | ✅      | ✅                 | ✅     |
 
 ## ✅ Recently Added Features
 
@@ -274,7 +274,7 @@ The following features have been implemented and are now available:
 4. **Extension Methods Convention** - TypeScript uses different patterns
 5. **IDisposable Pattern** - `onDestroy()` hook provides similar functionality
 
-## 💡 Unique Features in @nodelibs/ioc
+## 💡 Unique Features in @nodelibraries/ioc
 
 1. **Lifecycle Hooks** - `onInit()` and `onDestroy()` callbacks
 2. **No Decorators** - Cleaner code than many .NET DI libraries

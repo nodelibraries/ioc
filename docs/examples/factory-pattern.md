@@ -5,7 +5,7 @@ Demonstrates factory pattern for service creation - factory functions, async ini
 ## Code
 
 ```typescript
-import { ServiceCollection, ServiceProvider, ServiceFactory } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider, ServiceFactory } from '@nodelibraries/ioc';
 
 /**
  * Factory Pattern Example

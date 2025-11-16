@@ -91,6 +91,13 @@ export default defineConfig({
             { text: '18. Advanced Express', link: '/examples/express-advanced' },
           ],
         },
+        {
+          text: 'JavaScript Examples',
+          items: [
+            { text: 'JS Basic', link: '/examples/js-basic' },
+            { text: 'JS Advanced', link: '/examples/js-advanced' },
+          ],
+        },
       ],
       '/api/': [
         {

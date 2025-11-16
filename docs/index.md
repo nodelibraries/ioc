@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: '@nodelibs/ioc'
+  name: '@nodelibraries/ioc'
   text: Type-Safe IoC Container
   tagline: |
     Seamless dependency injection for Node.js, TypeScript and JavaScript
@@ -66,16 +66,19 @@ features:
   - icon: 💎
     title: Value Registration
     details: Register pre-created values (JSON, primitives, instances)
+  - icon: 📜
+    title: JavaScript Support
+    details: Works with both TypeScript and JavaScript. All features available in JavaScript without type safety.
 ---
 
 ## Quick Start
 
 ```bash
-npm install @nodelibs/ioc
+npm install @nodelibraries/ioc
 ```
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 // Define interfaces
 interface ILogger {
@@ -119,15 +122,15 @@ const userService = await scope.getRequiredService<IUserService>(IUserServiceTok
 const users = userService.getUsers();
 ```
 
-## Why @nodelibs/ioc?
+## Why @nodelibraries/ioc?
 
-**@nodelibs/ioc** - A lightweight, type-safe IoC container designed for Node.js and TypeScript, inspired by .NET Core's dependency injection system. Seamlessly inject dependencies into your application with zero dependencies and no decorators required.
+**@nodelibraries/ioc** - A lightweight, type-safe IoC container designed for Node.js and TypeScript, inspired by .NET Core's dependency injection system. Seamlessly inject dependencies into your application with zero dependencies and no decorators required.
 
 > Learn more about our philosophy and design principles in the [About](/guide/about) guide.
 
 ### No Decorators - Clean Code
 
-Unlike many IoC containers, `@nodelibs/ioc` doesn't require decorators. Write clean, readable code without decorator pollution.
+Unlike many IoC containers, `@nodelibraries/ioc` doesn't require decorators. Write clean, readable code without decorator pollution.
 
 ### Flexible Registration - Concrete & Abstract
 
@@ -159,7 +162,7 @@ Full TypeScript support ensures type safety at compile-time. Get autocomplete, t
 ## Installation
 
 ```bash
-npm install @nodelibs/ioc
+npm install @nodelibraries/ioc
 ```
 
 No additional configuration required! The library has zero dependencies and works out of the box.

@@ -5,7 +5,7 @@ Demonstrates a complex dependency chain: ServiceA -> ServiceB -> ServiceC -> Ser
 ## Code
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * Complex Dependency Chain Example

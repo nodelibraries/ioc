@@ -1,12 +1,13 @@
 # Introduction
 
-`@nodelibs/ioc` is a lightweight, type-safe Inversion of Control (IoC) container for Node.js and TypeScript, inspired by .NET Core's dependency injection system. It provides dependency injection capabilities similar to .NET's built-in DI container, but designed specifically for TypeScript/JavaScript.
+`@nodelibraries/ioc` is a lightweight, type-safe Inversion of Control (IoC) container for Node.js and TypeScript, inspired by .NET Core's dependency injection system. It provides dependency injection capabilities similar to .NET's built-in DI container, but designed specifically for TypeScript/JavaScript.
 
-> **@nodelibs/ioc** - A lightweight, type-safe IoC container designed for Node.js and TypeScript. Learn more in our [About](/guide/about) page.
+> **@nodelibraries/ioc** - A lightweight, type-safe IoC container designed for Node.js and TypeScript. Learn more in our [About](/guide/about) page.
 
 ## Key Features
 
 - 🎯 **Type-safe** - Full TypeScript support with type inference
+- 📜 **JavaScript Support** - Works with both TypeScript and JavaScript
 - 🔄 **Multiple Lifetimes** - Singleton, Scoped, and Transient service lifetimes
 - 🏗️ **Dependency Injection** - Automatic dependency resolution
 - 📦 **Lightweight** - Zero dependencies

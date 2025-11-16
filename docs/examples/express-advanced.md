@@ -6,7 +6,7 @@ More complex Express.js application with multiple services, middleware, authenti
 
 ```typescript
 import express, { Request, Response, NextFunction } from 'express';
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * Advanced Express Integration Example

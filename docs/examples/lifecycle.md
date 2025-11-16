@@ -5,7 +5,7 @@ Demonstrates lifecycle hooks - `onInit()` and `onDestroy()` methods for service 
 ## Code
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * Lifecycle Hooks Example

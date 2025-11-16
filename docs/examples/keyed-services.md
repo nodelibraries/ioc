@@ -5,7 +5,7 @@ Shows key-based service lookup - register services with string or symbol keys an
 ## Code
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * Keyed Services Example

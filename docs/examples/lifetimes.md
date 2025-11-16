@@ -5,7 +5,7 @@ Demonstrates the differences between Singleton, Scoped, and Transient service li
 ## Code
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * Service Lifetimes Example

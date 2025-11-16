@@ -1,6 +1,6 @@
 # Documentation
 
-This directory contains the documentation for `@nodelibs/ioc`, built with [VitePress](https://vitepress.dev/).
+This directory contains the documentation for `@nodelibraries/ioc`, built with [VitePress](https://vitepress.dev/).
 
 ## Development
 

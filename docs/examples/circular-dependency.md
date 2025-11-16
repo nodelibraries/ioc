@@ -5,7 +5,7 @@ Demonstrates circular dependency resolution - singleton, scoped, and transient c
 ## Code
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * Circular Dependency Example

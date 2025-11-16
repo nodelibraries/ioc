@@ -6,7 +6,7 @@ Complete example of using the IoC container with Express.js - request-scoped ser
 
 ```typescript
 import express, { Request, Response } from 'express';
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * Express Integration Example

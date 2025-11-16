@@ -5,7 +5,7 @@ Demonstrates safe registration without overriding - `tryAddSingleton`, `tryAddSc
 ## Code
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * TryAdd Pattern Example

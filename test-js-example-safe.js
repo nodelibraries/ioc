@@ -22,7 +22,7 @@ class UserService {
     if (typeof logger.log !== 'function') {
       throw new TypeError('UserService requires a logger with a log() method');
     }
-    
+
     this.logger = logger;
   }
 
@@ -95,7 +95,7 @@ const provider = services.buildServiceProvider();
     // This will fail at registration time if dependency is missing
     const badServices = new ServiceCollection();
     const BadToken = Symbol('Bad');
-    
+
     // This will throw an error because LoggerToken is not registered
     try {
       badServices.addScoped(BadToken, UserService, [ILoggerToken]);

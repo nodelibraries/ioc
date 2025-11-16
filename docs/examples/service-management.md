@@ -5,7 +5,7 @@ Demonstrates service management features - `Remove/RemoveAll()` methods for dyna
 ## Code
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * Service Management Example

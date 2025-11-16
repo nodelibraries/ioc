@@ -5,7 +5,7 @@ Shows how to register and retrieve multiple implementations of the same interfac
 ## Code
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * Multiple Implementations Example

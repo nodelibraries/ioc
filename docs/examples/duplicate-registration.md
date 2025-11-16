@@ -5,7 +5,7 @@ Explains what happens when registering the same interface multiple times - last 
 ## Code
 
 ```typescript
-import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * Duplicate Registration Example
