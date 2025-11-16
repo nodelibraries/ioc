@@ -93,8 +93,9 @@ const ILoggerToken = Symbol('ILogger');
 const IUserServiceToken = Symbol('IUserService');
 
 // Register services
-services.addSingleton<ILogger>(ILoggerToken, Logger);
-services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
+// ⚠️ IMPORTANT: If a class constructor has parameters (dependencies), you MUST provide them in the dependencies array
+services.addSingleton<ILogger>(ILoggerToken, Logger); // No dependencies - constructor has no parameters
+services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]); // Has dependency - MUST provide [ILoggerToken]
 
 // Build provider
 const provider = services.buildServiceProvider();

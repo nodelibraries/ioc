@@ -116,8 +116,9 @@ const services = new ServiceCollection();
 const ILoggerToken = Symbol('ILogger');
 const IUserServiceToken = Symbol('IUserService');
 
-services.addSingleton<ILogger>(ILoggerToken, Logger);
-services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
+// ⚠️ IMPORTANT: If a class constructor has parameters (dependencies), you MUST provide them in the dependencies array
+services.addSingleton<ILogger>(ILoggerToken, Logger); // No dependencies - constructor has no parameters
+services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]); // Has dependency - MUST provide [ILoggerToken]
 
 // Build provider
 const provider = services.buildServiceProvider();
@@ -140,8 +141,9 @@ No decorators, no annotations, no framework lock-in. Your code remains pure and 
 
 ```typescript
 // Clean, simple registration
-services.addSingleton<ILogger>(ILoggerToken, Logger);
-services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
+// ⚠️ IMPORTANT: If a class constructor has parameters (dependencies), you MUST provide them in the dependencies array
+services.addSingleton<ILogger>(ILoggerToken, Logger); // No dependencies - constructor has no parameters
+services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]); // Has dependency - MUST provide [ILoggerToken]
 ```
 
 ### 🔒 Type-Safe by Design
@@ -181,8 +183,9 @@ const provider = services.buildServiceProvider({ validateScopes: true });
 // Throws: "Cannot inject scoped service 'ILogger' into singleton service 'IUserService'"
 
 // ✅ CORRECT: Scoped service used within scope
-services.addSingleton<ILogger>(ILoggerToken, Logger);
-services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
+// ⚠️ IMPORTANT: If a class constructor has parameters (dependencies), you MUST provide them in the dependencies array
+services.addSingleton<ILogger>(ILoggerToken, Logger); // No dependencies - constructor has no parameters
+services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]); // Has dependency - MUST provide [ILoggerToken]
 
 const scope = provider.createScope();
 const userService = await scope.getRequiredService<IUserService>(IUserServiceToken); // ✅ Works!
@@ -199,8 +202,9 @@ const provider = services.buildServiceProvider({ validateOnBuild: true });
 // Throws: "Validation failed on build: Missing dependency: ILogger required by IUserService"
 
 // ✅ CORRECT: All dependencies registered
-services.addSingleton<ILogger>(ILoggerToken, Logger);
-services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
+// ⚠️ IMPORTANT: If a class constructor has parameters (dependencies), you MUST provide them in the dependencies array
+services.addSingleton<ILogger>(ILoggerToken, Logger); // No dependencies - constructor has no parameters
+services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]); // Has dependency - MUST provide [ILoggerToken]
 const provider = services.buildServiceProvider({ validateOnBuild: true }); // ✅ No errors!
 ```
 
