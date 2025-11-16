@@ -550,3 +550,87 @@ services
   .addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken])
   .addTransient<IValidator>(IValidatorToken, Validator);
 ```
+
+### Analysis Methods
+
+#### `getDependencyTree(token: Token): DependencyTreeNode`
+
+Get dependency tree for a specific token. Returns a tree structure showing all dependencies.
+
+**Parameters:**
+- `token`: The service token to analyze
+
+**Returns:**
+- `DependencyTreeNode` object with:
+  - `token`: The service token
+  - `name`: Human-readable name
+  - `lifetime`: Service lifetime (SINGLETON, SCOPED, TRANSIENT, CIRCULAR, NOT_REGISTERED)
+  - `dependencies`: Array of dependency nodes
+  - `depth`: Depth in the tree
+  - `isCircular`: Whether this node is part of a circular dependency
+  - `circularPath`: Path showing the circular dependency (if applicable)
+
+**Example:**
+```typescript
+const tree = services.getDependencyTree(IUserServiceToken);
+console.log(tree);
+```
+
+#### `getCircularDependencies(): CircularDependency[]`
+
+Find all circular dependencies in the service collection.
+
+**Returns:**
+- Array of `CircularDependency` objects, each containing:
+  - `path`: Array of tokens forming the circular path
+  - `tokens`: Array of objects with `token` and `name` properties
+
+**Example:**
+```typescript
+const circularDeps = services.getCircularDependencies();
+circularDeps.forEach((circular) => {
+  console.log('Circular path:', circular.tokens.map(t => t.name).join(' → '));
+});
+```
+
+#### `visualizeDependencyTree(token: Token): string`
+
+Visualize dependency tree as a formatted string.
+
+**Parameters:**
+- `token`: The service token to visualize
+
+**Returns:**
+- Formatted string representation of the dependency tree
+
+**Example:**
+```typescript
+console.log(services.visualizeDependencyTree(IUserServiceToken));
+// └── Symbol(IUserService) [SINGLETON]
+//     ├── Symbol(IUserRepository) [SINGLETON]
+//     │   └── Symbol(IDatabase) [SINGLETON]
+//     └── Symbol(ILogger) [SINGLETON]
+```
+
+#### `visualizeCircularDependencies(): string`
+
+Visualize all circular dependencies as a formatted string.
+
+**Returns:**
+- Formatted string representation of circular dependencies
+- Returns "No circular dependencies found." if none exist
+
+**Example:**
+```typescript
+console.log(services.visualizeCircularDependencies());
+// Found 1 circular dependency/ies:
+// Circular Dependency 1:
+//   Symbol(ServiceA) → Symbol(ServiceB) → Symbol(ServiceA)
+```
+
+## See Also
+
+- [ServiceProvider API](./service-provider) - Service resolution and management
+- [Examples](/examples/) - Practical examples
+- [Dependency Tree Example](/examples/dependency-tree) - Visualize dependency trees
+- [Circular Dependency Detection Example](/examples/circular-dependency-detection) - Detect circular dependencies

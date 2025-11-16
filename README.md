@@ -22,6 +22,8 @@ A lightweight, type-safe Inversion of Control (IoC) container inspired by .NET C
 - 🔄 **Lifecycle Hooks** - onInit() and onDestroy() callbacks
 - 💎 **Value Registration** - Register pre-created values (JSON, primitives, instances)
 - 🔄 **Circular Dependency Support** - Automatic resolution of circular dependencies for all lifetimes
+- 📊 **Dependency Tree Visualization** - Visualize and analyze service dependency trees
+- 🔍 **Circular Dependency Detection** - Detect and visualize all circular dependencies in your service collection
 
 ## Installation
 
@@ -1018,6 +1020,11 @@ Check out the [examples](./examples) directory for complete, runnable examples:
 - **16-service-management.ts** - Service Management (Remove/RemoveAll, dynamic management)
 - **16-express.ts** - Express Integration (request-scoped services, middleware)
 - **17-express-advanced.ts** - Advanced Express Integration (authentication, error handling, request context)
+
+### Analysis & Visualization (19-20)
+
+- **20-dependency-tree.ts** - Dependency Tree Visualization (visualize service dependencies, detect circular dependencies in trees)
+- **21-circular-dependency-detection.ts** - Circular Dependency Detection (detect and visualize all circular dependencies)
 
 See [examples/README.md](./examples/README.md) for detailed descriptions and running instructions.
 

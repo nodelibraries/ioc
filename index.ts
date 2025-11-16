@@ -6,4 +6,6 @@ export {
   type ServiceFactory,
   type Token,
   type Newable,
+  type DependencyTreeNode,
+  type CircularDependency,
 } from './ioc-container';

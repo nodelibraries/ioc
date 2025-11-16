@@ -1152,6 +1152,71 @@ app.listen(3000, () => {
 
 ---
 
+---
+
+#### 19. Dependency Tree Visualization
+
+Visualize and analyze service dependency trees. See the complete dependency hierarchy, detect circular dependencies, and get structured tree data.
+
+**Code Snippet:**
+
+```typescript
+import { ServiceCollection } from '@nodelibraries/ioc';
+
+const services = new ServiceCollection();
+// ... register services ...
+
+// Visualize dependency tree
+console.log(services.visualizeDependencyTree(IUserServiceToken));
+
+// Get tree as object
+const tree = services.getDependencyTree(IUserServiceToken);
+```
+
+**Output:**
+
+```
+└── Symbol(IUserService) [SINGLETON]
+    ├── Symbol(IUserRepository) [SINGLETON]
+    │   ├── Symbol(IDatabase) [SINGLETON]
+    │   └── Symbol(ILogger) [SINGLETON]
+    └── Symbol(ILogger) [SINGLETON]
+```
+
+**Full Example:** [dependency-tree.md](./dependency-tree) | [Source Code](../../examples/20-dependency-tree.ts)
+
+---
+
+#### 20. Circular Dependency Detection
+
+Detect and visualize all circular dependencies in your service collection. Works with simple and complex circular dependencies, and multiple independent cycles.
+
+**Code Snippet:**
+
+```typescript
+import { ServiceCollection } from '@nodelibraries/ioc';
+
+const services = new ServiceCollection();
+// ... register services with circular dependencies ...
+
+// Detect circular dependencies
+const circularDeps = services.getCircularDependencies();
+console.log(services.visualizeCircularDependencies());
+```
+
+**Output:**
+
+```
+Found 1 circular dependency/ies:
+
+Circular Dependency 1:
+  Symbol(ServiceA) → Symbol(ServiceB) → Symbol(ServiceC) → Symbol(ServiceA)
+```
+
+**Full Example:** [circular-dependency-detection.md](./circular-dependency-detection) | [Source Code](../../examples/21-circular-dependency-detection.ts)
+
+---
+
 ## JavaScript Examples
 
 The library works with both TypeScript and JavaScript. All features are available in JavaScript, but without compile-time type safety.

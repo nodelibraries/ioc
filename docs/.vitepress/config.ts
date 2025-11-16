@@ -101,6 +101,13 @@ export default defineConfig({
           ],
         },
         {
+          text: 'Analysis & Visualization',
+          items: [
+            { text: 'Dependency Tree', link: '/examples/dependency-tree' },
+            { text: 'Circular Dependency Detection', link: '/examples/circular-dependency-detection' },
+          ],
+        },
+        {
           text: 'Real-World Applications',
           items: [
             { text: 'Service Management', link: '/examples/service-management' },

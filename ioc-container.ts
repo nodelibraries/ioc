@@ -455,6 +455,177 @@ export class ServiceCollection {
       throw new Error(`Validation failed on build:\n${errors.join('\n')}`);
     }
   }
+
+  /**
+   * Get dependency tree for a specific token
+   * @param token The service token to analyze
+   * @returns A tree structure showing all dependencies
+   */
+  getDependencyTree(token: Token): DependencyTreeNode {
+    const visited = new Set<Token>();
+    const buildTree = (currentToken: Token, depth: number = 0, path: Token[] = []): DependencyTreeNode => {
+      // Detect circular dependency in path
+      if (path.includes(currentToken)) {
+        return {
+          token: currentToken,
+          name: this.getTokenName(currentToken),
+          lifetime: 'CIRCULAR',
+          dependencies: [],
+          depth,
+          isCircular: true,
+          circularPath: [...path, currentToken],
+        };
+      }
+
+      const desc = this.lookup(currentToken);
+      if (!desc) {
+        return {
+          token: currentToken,
+          name: this.getTokenName(currentToken),
+          lifetime: 'NOT_REGISTERED',
+          dependencies: [],
+          depth,
+        };
+      }
+
+      const node: DependencyTreeNode = {
+        token: currentToken,
+        name: this.getTokenName(currentToken),
+        lifetime: desc.lifetime,
+        dependencies: [],
+        depth,
+      };
+
+      if (desc.dependencies && desc.dependencies.length > 0) {
+        const newPath = [...path, currentToken];
+        node.dependencies = desc.dependencies.map((dep) => buildTree(dep, depth + 1, newPath));
+      }
+
+      return node;
+    };
+
+    return buildTree(token);
+  }
+
+  /**
+   * Find all circular dependencies in the service collection
+   * @returns Array of circular dependency paths
+   */
+  getCircularDependencies(): CircularDependency[] {
+    const circularDeps: CircularDependency[] = [];
+    const visited = new Set<Token>();
+    const visiting = new Set<Token>();
+
+    const findCircular = (token: Token, path: Token[] = []): void => {
+      if (visiting.has(token)) {
+        // Found circular dependency
+        const cycleStart = path.indexOf(token);
+        const cycle = [...path.slice(cycleStart), token];
+        circularDeps.push({
+          path: cycle,
+          tokens: cycle.map((t) => ({ token: t, name: this.getTokenName(t) })),
+        });
+        return;
+      }
+
+      if (visited.has(token)) {
+        return;
+      }
+
+      visited.add(token);
+      visiting.add(token);
+
+      const desc = this.lookup(token);
+      if (desc && desc.dependencies) {
+        for (const dep of desc.dependencies) {
+          findCircular(dep, [...path, token]);
+        }
+      }
+
+      visiting.delete(token);
+    };
+
+    // Check all registered tokens
+    for (const token of this.descriptors.keys()) {
+      if (!visited.has(token)) {
+        findCircular(token);
+      }
+    }
+
+    return circularDeps;
+  }
+
+  /**
+   * Visualize dependency tree as a string
+   * @param token The service token to visualize
+   * @returns Formatted string representation of the dependency tree
+   */
+  visualizeDependencyTree(token: Token): string {
+    const tree = this.getDependencyTree(token);
+    const lines: string[] = [];
+
+    const formatNode = (node: DependencyTreeNode, prefix: string = '', isLast: boolean = true): void => {
+      const connector = isLast ? '└── ' : '├── ';
+      const lifetimeStr = node.lifetime === 'CIRCULAR' ? ' [CIRCULAR]' : ` [${node.lifetime}]`;
+      const circularStr = node.isCircular ? ' ⚠️ CIRCULAR' : '';
+      lines.push(`${prefix}${connector}${node.name}${lifetimeStr}${circularStr}`);
+
+      const newPrefix = prefix + (isLast ? '    ' : '│   ');
+      for (let i = 0; i < node.dependencies.length; i++) {
+        formatNode(node.dependencies[i], newPrefix, i === node.dependencies.length - 1);
+      }
+    };
+
+    formatNode(tree);
+    return lines.join('\n');
+  }
+
+  /**
+   * Visualize all circular dependencies as a string
+   * @returns Formatted string representation of circular dependencies
+   */
+  visualizeCircularDependencies(): string {
+    const circularDeps = this.getCircularDependencies();
+    if (circularDeps.length === 0) {
+      return 'No circular dependencies found.';
+    }
+
+    const lines: string[] = [`Found ${circularDeps.length} circular dependency/ies:\n`];
+    circularDeps.forEach((circular, index) => {
+      lines.push(`Circular Dependency ${index + 1}:`);
+      const pathStr = circular.tokens.map((t) => t.name).join(' → ');
+      lines.push(`  ${pathStr}`);
+      lines.push('');
+    });
+
+    return lines.join('\n');
+  }
+
+  private getTokenName(token: Token): string {
+    if (typeof token === 'string') {
+      return token;
+    }
+    if (typeof token === 'symbol') {
+      return token.toString();
+    }
+    // It's a class constructor
+    return token.name || token.toString();
+  }
+}
+
+export interface DependencyTreeNode {
+  token: Token;
+  name: string;
+  lifetime: ServiceLifetime | 'CIRCULAR' | 'NOT_REGISTERED';
+  dependencies: DependencyTreeNode[];
+  depth: number;
+  isCircular?: boolean;
+  circularPath?: Token[];
+}
+
+export interface CircularDependency {
+  path: Token[];
+  tokens: Array<{ token: Token; name: string }>;
 }
 
 export class ServiceProvider {

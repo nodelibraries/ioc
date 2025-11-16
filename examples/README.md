@@ -70,6 +70,8 @@ npx ts-node examples/15-complex-dependency-chain.ts
 npx ts-node examples/16-service-management.ts
 npx ts-node examples/16-express.ts
 npx ts-node examples/17-express-advanced.ts
+npx ts-node examples/20-dependency-tree.ts
+npx ts-node examples/21-circular-dependency-detection.ts
 ```
 
 ### Using Node.js (after build)
@@ -97,6 +99,8 @@ node dist/examples/15-complex-dependency-chain.js
 node dist/examples/16-service-management.js
 node dist/examples/16-express.js
 node dist/examples/17-express-advanced.js
+node dist/examples/20-dependency-tree.js
+node dist/examples/21-circular-dependency-detection.js
 ```
 
 ## Examples Overview
@@ -220,6 +224,8 @@ Examples are organized from basic to advanced:
 
 ### Real-World Applications (16-18)
 
+### Analysis & Visualization (19-20)
+
 **16. 16-service-management.ts** - Service Management
 
 - Remove/RemoveAll(): Remove services from collection
@@ -242,6 +248,21 @@ Examples are organized from basic to advanced:
 - Service lifecycle management
 - Authentication middleware
 - Request context
+
+**19. 20-dependency-tree.ts** - Dependency Tree Visualization
+
+- Visualize dependency trees for services
+- Get dependency tree as object structure
+- Detect circular dependencies in trees
+- Format dependency trees as strings
+
+**20. 21-circular-dependency-detection.ts** - Circular Dependency Detection
+
+- Detect all circular dependencies in service collection
+- Visualize circular dependency paths
+- Handle simple and complex circular dependencies
+- Multiple circular dependency detection
+- Runtime verification that circular dependencies still work
 
 ## Learning Path
 
