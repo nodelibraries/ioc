@@ -90,10 +90,16 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           echo "Verifying npm authentication..."
-          npm whoami --registry=https://registry.npmjs.org || (echo "❌ npm authentication failed. Please check NPM_TOKEN secret." && exit 1)
+          NPM_USER=$(npm whoami --registry=https://registry.npmjs.org 2>&1)
+          if [ $? -ne 0 ]; then
+            echo "❌ npm authentication failed. Please check NPM_TOKEN secret."
+            echo "Error: $NPM_USER"
+            exit 1
+          fi
           echo "✅ npm authentication successful"
+          echo "Logged in as: $NPM_USER"
 
-      - name: Check package existence
+      - name: Check package existence and scope access
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
@@ -102,6 +108,9 @@ jobs:
             echo "✅ Package exists on npm"
           else
             echo "⚠️  Package does not exist yet. This will be the first publish."
+            echo "Checking scope access..."
+            # Try to access the scope
+            npm access ls-packages @nodelibraries 2>&1 || echo "⚠️  Cannot list packages in @nodelibraries scope. This might be normal for first publish."
           fi
 
       - name: Publish to npm
@@ -110,4 +119,20 @@ jobs:
         run: |
           VERSION="${{ steps.bump.outputs.new_version }}"
           echo "Publishing version: $VERSION"
-          npm publish --access public --registry=https://registry.npmjs.org
+          echo "Package: @nodelibraries/ioc"
+          echo "Registry: https://registry.npmjs.org"
+          
+          # Try to publish with detailed error output
+          if npm publish --access public --registry=https://registry.npmjs.org 2>&1; then
+            echo "✅ Successfully published @nodelibraries/ioc@$VERSION"
+          else
+            EXIT_CODE=$?
+            echo "❌ Failed to publish package"
+            echo ""
+            echo "Troubleshooting steps:"
+            echo "1. Verify NPM_TOKEN is an 'Automation' token with publish permissions"
+            echo "2. Check if @nodelibraries scope exists on npm (create organization if needed)"
+            echo "3. Ensure the token has access to publish to @nodelibraries scope"
+            echo "4. Try publishing manually: npm publish --access public"
+            exit $EXIT_CODE
+          fi
