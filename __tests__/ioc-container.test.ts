@@ -1565,7 +1565,7 @@ describe('ServiceProvider', () => {
 
     it('should handle index.ts exports', () => {
       // Test that index.ts exports work
-      const index = require('../index');
+      const index = require('../src/index');
       expect(index.ServiceCollection).toBeDefined();
       expect(index.ServiceProvider).toBeDefined();
       expect(index.ServiceLifetime).toBeDefined();
