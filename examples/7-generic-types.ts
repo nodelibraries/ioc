@@ -1,4 +1,4 @@
-import { ServiceCollection, ServiceProvider } from '../src/ioc-container';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * Generic Type Parameters Example

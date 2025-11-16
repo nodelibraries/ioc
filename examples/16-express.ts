@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { ServiceCollection, ServiceProvider } from '../src/ioc-container';
+import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
 
 /**
  * Express Integration Example

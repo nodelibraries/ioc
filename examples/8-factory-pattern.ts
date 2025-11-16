@@ -1,4 +1,4 @@
-import { ServiceCollection, ServiceProvider, ServiceFactory } from '../src/ioc-container';
+import { ServiceCollection, ServiceProvider, ServiceFactory } from '@nodelibraries/ioc';
 
 /**
  * Factory Pattern Example
