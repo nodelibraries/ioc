@@ -1,16 +1,18 @@
-<div align="center">
+<div align="left">
 
 # @nodelibraries/ioc
 
 ### Type-Safe IoC Container for Node.js, TypeScript and JavaScript
 
-[![npm version](https://img.shields.io/npm/v/@nodelibraries/ioc.svg?logo=npm)](https://www.npmjs.com/package/@nodelibraries/ioc) [![npm downloads](https://img.shields.io/npm/dm/@nodelibraries/ioc.svg?logo=npm)](https://www.npmjs.com/package/@nodelibraries/ioc) [![License](https://img.shields.io/npm/l/@nodelibraries/ioc.svg)](https://github.com/nodelibraries/ioc/blob/main/LICENSE) [![Node.js Version](https://img.shields.io/node/v/@nodelibraries/ioc.svg?logo=node.js)](https://nodejs.org/) [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg?logo=typescript)](https://www.typescriptlang.org/)
 
 **A lightweight, production-ready Inversion of Control (IoC) container inspired by .NET Core's dependency injection system.**
 
 Built with TypeScript for full type safety • Zero dependencies • No decorators required
 
 [📖 Documentation](https://nodelibraries.github.io/ioc/) • [💡 Examples](./examples) • [📚 API Reference](https://nodelibraries.github.io/ioc/api/) • [⭐ GitHub](https://github.com/nodelibraries/ioc)
+
+
+[![npm version](https://img.shields.io/npm/v/@nodelibraries/ioc.svg?logo=npm)](https://www.npmjs.com/package/@nodelibraries/ioc) [![npm downloads](https://img.shields.io/npm/dm/@nodelibraries/ioc.svg?logo=npm)](https://www.npmjs.com/package/@nodelibraries/ioc) [![License](https://img.shields.io/npm/l/@nodelibraries/ioc.svg)](https://github.com/nodelibraries/ioc/blob/main/LICENSE) [![Node.js Version](https://img.shields.io/node/v/@nodelibraries/ioc.svg?logo=node.js)](https://nodejs.org/) [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg?logo=typescript)](https://www.typescriptlang.org/)
 
 </div>
 
