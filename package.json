@@ -41,7 +41,7 @@
   "bugs": {
     "url": "https://github.com/nodelibraries/ioc/issues"
   },
-  "homepage": "https://github.com/nodelibraries/ioc",
+  "homepage": "http://nodelibraries.github.io/ioc/",
   "engines": {
     "node": ">=18.0.0"
   },
