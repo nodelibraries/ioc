@@ -446,6 +446,7 @@ services.AddSingleton<IService>(sp => {
      ```
 
 3. **ValidateOnBuild** ⭐⭐⭐
+
    - **Neden kritik:** Production'da erken hata tespiti, startup'ta tüm dependency'leri validate eder
    - **Kullanım sıklığı:** Development ve production'da çok önemli
    - **Workaround:** Yok (ilk request'te hata alırsınız - kötü UX)
