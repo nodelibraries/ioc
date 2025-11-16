@@ -1152,6 +1152,38 @@ app.listen(3000, () => {
 
 ---
 
+## JavaScript Examples
+
+The library works with both TypeScript and JavaScript. All features are available in JavaScript, but without compile-time type safety.
+
+### JS Basic Example
+
+**File:** [js-basic.js](../../examples/js-basic.js) | [Documentation](./js-basic)
+
+Basic JavaScript usage - service registration, resolution, dependency injection, and scopes.
+
+**Run:**
+```bash
+node examples/js-basic.js
+```
+
+### JS Advanced Example
+
+**File:** [js-advanced.js](../../examples/js-advanced.js) | [Documentation](./js-advanced)
+
+Advanced JavaScript features - factory pattern, keyed services, multiple implementations, value registration, service checking, and TryAdd pattern.
+
+**Run:**
+```bash
+node examples/js-advanced.js
+```
+
+**Key Points:**
+- All features work in JavaScript (same API as TypeScript)
+- No compile-time type safety
+- Runtime validation recommended in constructors
+- CommonJS `require()` syntax (ES Modules also supported)
+
 ## Learning Path
 
 1. **Start with basics**: Examples 1-3 introduce the fundamental concepts
@@ -1160,6 +1192,7 @@ app.listen(3000, () => {
 4. **Explore advanced features**: Examples 7-13 cover more sophisticated patterns
 5. **Handle edge cases**: Examples 14-15 demonstrate complex scenarios
 6. **Build real applications**: Examples 16-18 show practical usage
+7. **JavaScript users**: Check out `js-basic.js` and `js-advanced.js` for JavaScript examples
 
 ## Notes
 

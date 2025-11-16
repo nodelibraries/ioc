@@ -501,7 +501,12 @@ export class ServiceProvider {
     const descriptors = this.descriptors.get(token);
     if (!descriptors || descriptors.length === 0) return [];
 
-    const results = await Promise.all(descriptors.map((desc) => this.resolveService(desc, token)));
+    const results = await Promise.all(
+      descriptors.map((desc) => {
+        const descriptorKey = this.getDescriptorKey(desc);
+        return this.resolveService(desc, token, descriptorKey);
+      }),
+    );
     return results.filter((r) => r !== undefined) as T[];
   }
 

@@ -10,6 +10,7 @@ The library works with both TypeScript and JavaScript. JavaScript examples are a
 - **js-advanced.js** - Advanced JavaScript features (factory, keyed services, multiple implementations)
 
 Run JavaScript examples:
+
 ```bash
 node examples/js-basic.js
 node examples/js-advanced.js

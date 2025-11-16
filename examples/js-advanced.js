@@ -69,13 +69,13 @@ services.addSingleton(ICacheToken, async (provider) => {
 const config = { apiUrl: 'https://api.example.com', timeout: 5000 };
 services.addValue('Config', config);
 
-// 4. Multiple implementations
-services.addSingleton(ILoggerKeyedToken, FileLogger);
-services.addSingleton(ILoggerKeyedToken, ConsoleLogger);
+// 4. Multiple implementations (register with explicit dependencies)
+services.addSingleton(ILoggerKeyedToken, FileLogger, []);
+services.addSingleton(ILoggerKeyedToken, ConsoleLogger, []);
 
-// 5. Keyed services
-services.addKeyedSingleton(ILoggerKeyedToken, 'file', FileLogger);
-services.addKeyedSingleton(ILoggerKeyedToken, 'console', ConsoleLogger);
+// 5. Keyed services (register with explicit dependencies)
+services.addKeyedSingleton(ILoggerKeyedToken, 'file', FileLogger, []);
+services.addKeyedSingleton(ILoggerKeyedToken, 'console', ConsoleLogger, []);
 
 // 6. TryAdd pattern (safe registration)
 services.tryAddSingleton(ILoggerToken, FileLogger); // Won't override existing Logger
@@ -102,9 +102,9 @@ const provider = services.buildServiceProvider();
     console.log('\n=== 4. Multiple Implementations ===');
     const loggers = await provider.getServices(ILoggerKeyedToken);
     console.log(`Found ${loggers.length} logger implementations`);
-    loggers.forEach((logger, index) => {
-      logger.log(`Logger ${index + 1}`);
-    });
+    for (let i = 0; i < loggers.length; i++) {
+      loggers[i].log(`Logger ${i + 1}`);
+    }
 
     console.log('\n=== 5. Keyed Services ===');
     const fileLogger = await provider.getRequiredKeyedService(ILoggerKeyedToken, 'file');

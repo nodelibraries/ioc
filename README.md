@@ -171,6 +171,37 @@ import { ServiceCollection, ServiceProvider } from 'nodelibs-ioc';
 - Missing dependencies throw errors at resolution time
 - You don't need to manually check for `null`/`undefined` if using the container correctly
 
+## JavaScript Support
+
+### ✅ Fully Supported Features
+
+All features work in JavaScript, but without compile-time type safety:
+
+- ✅ **Service Registration** - `addSingleton`, `addScoped`, `addTransient`
+- ✅ **Value Registration** - `addValue` for pre-created values
+- ✅ **Factory Pattern** - Factory functions (sync and async)
+- ✅ **Multiple Implementations** - `getServices()` for multiple registrations
+- ✅ **Keyed Services** - `addKeyed*`, `getKeyedService`, `getRequiredKeyedService`
+- ✅ **TryAdd Pattern** - `tryAddSingleton`, `tryAddScoped`, `tryAddTransient`
+- ✅ **Service Management** - `remove`, `removeAll`, `replace`
+- ✅ **Service Checking** - `isService()` method
+- ✅ **Service Resolution** - `getService`, `getRequiredService`, `getServices`
+- ✅ **Scopes** - `createScope()`, `dispose()`
+- ✅ **Lifecycle Hooks** - `onInit()`, `onDestroy()` methods
+- ✅ **Scope Validation** - `validateScopes`, `validateOnBuild` options
+- ✅ **Circular Dependencies** - Automatic resolution
+
+### ⚠️ JavaScript Limitations
+
+- ❌ **No Compile-time Type Safety** - Type errors only appear at runtime
+- ❌ **No IntelliSense/Autocomplete** - Without TypeScript, IDE support is limited
+- ❌ **No Type Inference** - Must manually track types
+- ⚠️ **Runtime Validation Recommended** - Add checks in constructors for safety
+
+### 📝 JavaScript Examples
+
+See the [JavaScript Examples](./examples#javascript-examples) section for complete examples.
+
 ## Why @nodelibraries/ioc?
 
 **@nodelibraries/ioc** - A lightweight, type-safe IoC container designed for Node.js and TypeScript, inspired by .NET Core's dependency injection system. Seamlessly inject dependencies into your application with zero dependencies and no decorators required.
@@ -910,6 +941,17 @@ Check out the [examples](./examples) directory for complete, runnable examples:
 - **18-express-advanced.ts** - Advanced Express Integration (authentication, error handling, request context)
 
 See [examples/README.md](./examples/README.md) for detailed descriptions and running instructions.
+
+### JavaScript Examples
+
+- **js-basic.js** - Basic JavaScript usage (registration, resolution, scopes)
+- **js-advanced.js** - Advanced JavaScript features (factory, keyed services, multiple implementations)
+
+Run JavaScript examples:
+```bash
+node examples/js-basic.js
+node examples/js-advanced.js
+```
 
 ## Comparison with .NET Core Dependency Injection
 
