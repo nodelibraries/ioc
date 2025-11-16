@@ -4,7 +4,7 @@ export default defineConfig({
   title: '@nodelibraries/ioc',
   description: 'Type-Safe IoC Container for Node.js, TypeScript and JavaScript',
   base: '/ioc/',
-  
+
   themeConfig: {
     nav: [
       { text: 'Guide', link: '/guide/' },
@@ -109,9 +109,7 @@ export default defineConfig({
       ],
     },
 
-    socialLinks: [
-      { icon: 'github', link: 'https://github.com/nodelibraries/ioc' },
-    ],
+    socialLinks: [{ icon: 'github', link: 'https://github.com/nodelibraries/ioc' }],
 
     footer: {
       message: 'Released under the MIT License.',

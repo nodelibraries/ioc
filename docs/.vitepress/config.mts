@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitepress';
 
 export default defineConfig({
-  title: '@infusio/ioc',
+  title: '@nodelibraries/ioc',
   description: 'A lightweight, type-safe Inversion of Control (IoC) container for Node.js and TypeScript',
   // Update this to match your GitHub repository name
   // If your repo is 'node-ioc-container', use '/node-ioc-container/'
