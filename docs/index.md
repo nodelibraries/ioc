@@ -66,9 +66,6 @@ features:
   - icon: 💎
     title: Value Registration
     details: Register pre-created values (JSON, primitives, instances)
-  - icon: 📜
-    title: JavaScript Support
-    details: Works with both TypeScript and JavaScript. All features available in JavaScript without type safety.
 ---
 
 ## Quick Start
