@@ -1,8 +1,8 @@
 # @nodelibs/ioc
 
-> Type-Safe IoC Container for Node.js and TypeScript
+> Type-Safe IoC Container for Node.js, TypeScript and JavaScript
 
-A lightweight, type-safe Inversion of Control (IoC) container inspired by .NET Core's dependency injection system. **No decorators required** - clean code with flexible registration for both **concrete classes** and **abstract interfaces**. Supports Singleton, Scoped, and Transient service lifetimes.
+A lightweight, type-safe Inversion of Control (IoC) container inspired by .NET Core's dependency injection system. **No decorators required** - clean code with flexible registration for both **concrete classes** and **abstract interfaces**. Works with both TypeScript and JavaScript. Supports Singleton, Scoped, and Transient service lifetimes.
 
 ## Features
 
@@ -30,11 +30,14 @@ npm install @nodelibs/ioc
 ```
 
 **Note:** If the `@nodelibs` scope is not available, you can use the unscoped package:
+
 ```bash
 npm install nodelibs-ioc
 ```
 
 ## Quick Start
+
+### TypeScript
 
 ```typescript
 import { ServiceCollection, ServiceProvider } from '@nodelibs/ioc';
@@ -81,6 +84,59 @@ const provider = services.buildServiceProvider();
 // Use services
 const userService = await provider.getRequiredService<IUserService>(IUserServiceToken);
 const users = userService.getUsers();
+```
+
+### JavaScript (CommonJS)
+
+```javascript
+const { ServiceCollection, ServiceProvider, ServiceLifetime } = require('nodelibs-ioc');
+
+// Define services
+class Logger {
+  log(message) {
+    console.log(`[LOG] ${message}`);
+  }
+}
+
+class UserService {
+  constructor(logger) {
+    this.logger = logger;
+  }
+
+  getUsers() {
+    this.logger.log('Fetching users...');
+    return ['Alice', 'Bob'];
+  }
+}
+
+// Setup container
+const services = new ServiceCollection();
+
+// Create tokens
+const ILoggerToken = Symbol('ILogger');
+const IUserServiceToken = Symbol('IUserService');
+
+// Register services
+services.addSingleton(ILoggerToken, Logger);
+services.addScoped(IUserServiceToken, UserService, [ILoggerToken]);
+
+// Build provider
+const provider = services.buildServiceProvider();
+
+// Use services
+(async () => {
+  const userService = await provider.getRequiredService(IUserServiceToken);
+  const users = userService.getUsers();
+  console.log(users); // ['Alice', 'Bob']
+})();
+```
+
+### JavaScript (ES Modules)
+
+```javascript
+import { ServiceCollection, ServiceProvider } from 'nodelibs-ioc';
+
+// ... same as TypeScript example above
 ```
 
 ## Why @nodelibs/ioc?
