@@ -36,12 +36,12 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nodelibs/ioc.git"
+    "url": "https://github.com/nodelibraries/ioc.git"
   },
   "bugs": {
-    "url": "https://github.com/nodelibs/ioc/issues"
+    "url": "https://github.com/nodelibraries/ioc/issues"
   },
-  "homepage": "https://github.com/nodelibs/ioc#readme",
+  "homepage": "https://github.com/nodelibraries/ioc#readme",
   "engines": {
     "node": ">=14.0.0"
   },
