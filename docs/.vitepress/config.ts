@@ -31,6 +31,12 @@ export default defineConfig({
       { text: 'Examples', link: '/examples/' },
       { text: 'API', link: '/api/' },
       { text: 'GitHub', link: 'https://github.com/nodelibraries/ioc' },
+      {
+        text: '☕ Buy me a coffee',
+        link: 'https://buymeacoffee.com/ylcnfrht',
+        target: '_blank',
+        rel: 'noopener noreferrer',
+      },
     ],
 
     sidebar: {
@@ -139,7 +145,8 @@ export default defineConfig({
     socialLinks: [{ icon: 'github', link: 'https://github.com/nodelibraries/ioc' }],
 
     footer: {
-      message: 'Released under the ISC License.',
+      message:
+        'Released under the ISC License. If you find this project helpful, consider <a href="https://buymeacoffee.com/ylcnfrht" target="_blank" rel="noopener noreferrer">buying me a coffee</a> ☕',
       copyright: 'Copyright © 2025 nodelibraries | Created by ylcnfrht',
     },
   },

@@ -410,6 +410,7 @@ ISC License - see [LICENSE](./LICENSE) file for details.
 **ylcnfrht**
 
 - GitHub: [@ylcnfrht](https://github.com/ylcnfrht)
+- ☕ [Buy me a coffee](https://buymeacoffee.com/ylcnfrht) - If you find this project helpful, consider supporting it!
 
 ---
 
