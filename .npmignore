@@ -6,6 +6,9 @@
 tsconfig.json
 .gitignore
 .npmignore
+.prettierrc
+jest.config.js
+jest.setup.js
 
 # IDE
 .vscode/
@@ -26,6 +29,7 @@ coverage/
 .nyc_output/
 test/
 tests/
+__tests__/
 *.test.ts
 *.spec.ts
 
@@ -36,6 +40,10 @@ demo/
 
 # Documentation (keep README.md and LICENSE)
 docs/
+
+# Build artifacts that shouldn't be in package
+dist/__tests__/
+dist/examples/
 
 # Temporary files
 *.tmp
