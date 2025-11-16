@@ -197,9 +197,9 @@ const provider = services.buildServiceProvider({
 });
 ```
 
-### Better Than .NET Core
+### 🔄 Enhanced Circular Dependency Support
 
-Enhanced circular dependency support that works for all lifetimes, including Transient services.
+Circular dependencies are automatically resolved for all service lifetimes, including Transient services (which .NET Core doesn't support).
 
 ```typescript
 // Circular dependencies work seamlessly
