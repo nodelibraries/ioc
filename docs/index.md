@@ -66,6 +66,15 @@ features:
   - icon: 💎
     title: Value Registration
     details: Register pre-created values (JSON, primitives, instances)
+  - icon: 📜
+    title: JavaScript Support
+    details: Works with both TypeScript and JavaScript. All features available in JavaScript without type safety.
+  - icon: 📊
+    title: Dependency Tree Visualization
+    details: Visualize and analyze service dependency trees with getDependencyTree() and visualizeDependencyTree()
+  - icon: 🔍
+    title: Circular Dependency Detection
+    details: Detect and visualize all circular dependencies in your service collection
 ---
 
 ## Quick Start
@@ -121,15 +130,58 @@ const users = userService.getUsers();
 
 ## Why @nodelibraries/ioc?
 
-**@nodelibraries/ioc** - A lightweight, type-safe IoC container designed for Node.js and TypeScript, inspired by .NET Core's dependency injection system. Seamlessly inject dependencies into your application with zero dependencies and no decorators required.
+**@nodelibraries/ioc** is a production-ready, type-safe IoC container designed for Node.js and TypeScript, inspired by .NET Core's dependency injection system. Seamlessly inject dependencies into your application with zero dependencies and no decorators required.
 
 > Learn more about our philosophy and design principles in the [About](/guide/about) guide.
 
-### No Decorators - Clean Code
+### 🎯 Clean & Simple
 
-Unlike many IoC containers, `@nodelibraries/ioc` doesn't require decorators. Write clean, readable code without decorator pollution.
+No decorators, no annotations, no framework lock-in. Your code remains pure and framework-agnostic.
 
-### Flexible Registration - Concrete & Abstract
+```typescript
+// Clean, simple registration
+services.addSingleton<ILogger>(ILoggerToken, Logger);
+services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]);
+```
+
+### 🔒 Type-Safe by Design
+
+Built from the ground up for TypeScript. Full type inference, autocomplete, and compile-time safety.
+
+```typescript
+// Full type safety with autocomplete
+const logger = await provider.getRequiredService<ILogger>(ILoggerToken);
+logger.log('Hello'); // ✅ TypeScript knows this method exists
+```
+
+### 🚀 Production Ready
+
+Battle-tested features including scope validation, lifecycle hooks, and comprehensive error handling.
+
+```typescript
+// Build with validation
+const provider = services.buildServiceProvider({
+  validateScopes: true,      // Catch lifetime mismatches
+  validateOnBuild: true,     // Validate all dependencies
+});
+```
+
+### 💪 Better Than .NET Core
+
+Enhanced circular dependency support that works for all lifetimes, including Transient services.
+
+```typescript
+// Circular dependencies work seamlessly
+class ServiceA {
+  constructor(private serviceB: ServiceB) {}
+}
+
+class ServiceB {
+  constructor(private serviceA: ServiceA) {} // ✅ Works!
+}
+```
+
+### 🎨 Flexible Registration
 
 Register services using:
 
@@ -137,24 +189,6 @@ Register services using:
 - **Abstract interfaces** - Interface-based registration with tokens
 - **Factory functions** - Complex initialization logic
 - **Pre-created values** - JSON objects, primitives, instances
-
-### Type-Safe
-
-Full TypeScript support ensures type safety at compile-time. Get autocomplete, type checking, and IntelliSense support.
-
-### Production Ready
-
-- ✅ Singleton, Scoped, Transient lifetimes
-- ✅ Factory pattern support
-- ✅ Multiple implementations
-- ✅ Keyed services (with getRequiredKeyedService)
-- ✅ TryAdd pattern
-- ✅ Scope validation (validateScopes & validateOnBuild)
-- ✅ Service checking (isService)
-- ✅ Service management (remove, removeAll, replace)
-- ✅ Lifecycle hooks
-- ✅ Value registration
-- ✅ Circular dependency support
 
 ## Installation
 
