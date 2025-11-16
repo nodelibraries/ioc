@@ -161,14 +161,14 @@ Battle-tested features including scope validation, lifecycle hooks, and comprehe
 ```typescript
 // Build with validation
 const provider = services.buildServiceProvider({
-  validateScopes: true,      // Catch lifetime mismatches
-  validateOnBuild: true,     // Validate all dependencies
+  validateScopes: true, // Catch lifetime mismatches
+  validateOnBuild: true, // Validate all dependencies
 });
 ```
 
-### 💪 Better Than .NET Core
+### 🔄 Enhanced Circular Dependency Support
 
-Enhanced circular dependency support that works for all lifetimes, including Transient services.
+Circular dependencies are automatically resolved for all service lifetimes, including Transient services (which .NET Core doesn't support).
 
 ```typescript
 // Circular dependencies work seamlessly

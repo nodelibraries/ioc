@@ -139,8 +139,8 @@ export default defineConfig({
     socialLinks: [{ icon: 'github', link: 'https://github.com/nodelibraries/ioc' }],
 
     footer: {
-      message: 'Released under the MIT License.',
-      copyright: 'Copyright © 2025 nodelibraries',
+      message: 'Released under the ISC License.',
+      copyright: 'Copyright © 2025 nodelibraries | Created by ylcnfrht',
     },
   },
 });
