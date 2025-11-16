@@ -150,12 +150,13 @@ import { ServiceCollection, ServiceProvider } from 'nodelibs-ioc';
 1. **Add runtime validation** in constructors (as shown above)
 2. **Use TypeScript** for compile-time type safety
 3. **Use JSDoc** for better IDE support:
+
    ```javascript
    /**
     * @typedef {Object} ILogger
     * @property {function(string): void} log
     */
-   
+
    /**
     * @param {ILogger} logger
     */
@@ -165,6 +166,7 @@ import { ServiceCollection, ServiceProvider } from 'nodelibs-ioc';
    ```
 
 **✅ IoC Container Protection:**
+
 - The container ensures dependencies are resolved before construction
 - Missing dependencies throw errors at resolution time
 - You don't need to manually check for `null`/`undefined` if using the container correctly
