@@ -30,7 +30,15 @@
     "scoped",
     "transient",
     "dotnet",
-    "dotnet-core"
+    "dotnet-core",
+    "dependency-injection-container",
+    "ioc-container",
+    "typescript-library",
+    "design-patterns",
+    "service-locator-pattern",
+    "di-container",
+    "type-safe",
+    "zero-dependencies"
   ],
   "author": "ylcnfrht",
   "license": "ISC",
