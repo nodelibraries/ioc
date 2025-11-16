@@ -541,7 +541,7 @@ export class ServiceProvider {
     return desc !== undefined;
   }
 
-  private async resolveService(desc: ServiceDescriptor, token: Token): Promise<any> {
+  private async resolveService(desc: ServiceDescriptor, token: Token, descriptorKey?: string): Promise<any> {
     // If this is a value registration, return it directly
     if (desc.value !== undefined) {
       return desc.value;
@@ -560,16 +560,17 @@ export class ServiceProvider {
         const rootProvider = this.getRootProvider();
         // Create a unique key for this descriptor (token + implementation/factory)
         // This allows multiple implementations with the same token to have separate instances
-        const descriptorKey = desc.implementation
+        // Use provided descriptorKey if available, otherwise create it
+        const finalDescriptorKey = descriptorKey || (desc.implementation
           ? `${token.toString()}:${desc.implementation.name || desc.implementation.toString()}`
           : desc.factory
           ? `${token.toString()}:factory:${desc.factory.toString()}`
-          : `${token.toString()}:value:${desc.value?.toString()}`;
+          : `${token.toString()}:value:${desc.value?.toString()}`);
 
         // Check if this specific descriptor already has an instance (for multiple implementations with same token)
         // Use a Map with string keys for reliable comparison
-        if (rootProvider.descriptorInstances.has(descriptorKey)) {
-          return rootProvider.descriptorInstances.get(descriptorKey);
+        if (rootProvider.descriptorInstances.has(finalDescriptorKey)) {
+          return rootProvider.descriptorInstances.get(finalDescriptorKey);
         }
 
         // Check if already resolved (backward compatibility for single implementation per token)
@@ -580,8 +581,8 @@ export class ServiceProvider {
         }
         // Check for circular dependency - if already in resolution stack, return partially constructed instance
         // Use descriptorKey for resolution stack to support multiple implementations
-        if (rootProvider.resolutionStack.has(descriptorKey as any)) {
-          const partialInstance = rootProvider.constructingInstances.get(descriptorKey as any);
+        if (rootProvider.resolutionStack.has(finalDescriptorKey as any)) {
+          const partialInstance = rootProvider.constructingInstances.get(finalDescriptorKey as any);
           if (partialInstance !== undefined) {
             return partialInstance;
           }
@@ -591,19 +592,19 @@ export class ServiceProvider {
           );
         }
         // Add to resolution stack and create instance
-        rootProvider.resolutionStack.add(descriptorKey as any);
+        rootProvider.resolutionStack.add(finalDescriptorKey as any);
         try {
-          const instance = await rootProvider.createInstance(desc, rootProvider, token, descriptorKey);
+          const instance = await rootProvider.createInstance(desc, rootProvider, token, finalDescriptorKey);
           // Cache by descriptor key for multiple implementations support
-          rootProvider.descriptorInstances.set(descriptorKey, instance);
+          rootProvider.descriptorInstances.set(finalDescriptorKey, instance);
           // Also cache by token for backward compatibility (only if this is the first descriptor for this token)
           if (!rootProvider.instances.has(token)) {
             rootProvider.instances.set(token, instance);
           }
           return instance;
         } finally {
-          rootProvider.resolutionStack.delete(descriptorKey as any);
-          rootProvider.constructingInstances.delete(descriptorKey as any);
+          rootProvider.resolutionStack.delete(finalDescriptorKey as any);
+          rootProvider.constructingInstances.delete(finalDescriptorKey as any);
         }
 
       case ServiceLifetime.Scoped:
