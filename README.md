@@ -135,7 +135,7 @@ const services = new ServiceCollection();
 const ILoggerToken = Symbol('ILogger');
 const IUserServiceToken = Symbol('IUserService');
 
-// ⚠️ IMPORTANT: In JavaScript, you MUST provide dependencies array if constructor has parameters
+// ⚠️ IMPORTANT: If a class constructor has parameters (dependencies), you MUST provide them in the dependencies array
 services.addSingleton(ILoggerToken, Logger);
 services.addScoped(IUserServiceToken, UserService, [ILoggerToken]);
 
