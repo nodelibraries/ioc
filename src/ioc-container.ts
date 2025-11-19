@@ -181,7 +181,6 @@ export class ServiceCollection {
     }
 
     const finalImplementation = implementation ?? (factory ? undefined : (token as Newable<T>));
-    // If implementation exists and dependencies is undefined, default to empty array
     const finalDeps = finalImplementation && deps === undefined ? [] : deps;
 
     return {
@@ -232,18 +231,18 @@ export class ServiceCollection {
   ): this {
     if (this.hasDescriptor(token)) return this;
 
-    const {
-      finalImplementation,
-      factory,
-      dependencies: deps,
-    } = this.parseRegistrationParams(token, implementationOrDependencies, dependencies);
+    const { finalImplementation, factory, finalDependencies } = this.parseRegistrationParams(
+      token,
+      implementationOrDependencies,
+      dependencies,
+    );
 
     this.addDescriptor({
       token,
       lifetime,
       implementation: finalImplementation,
       factory,
-      dependencies: deps,
+      dependencies: finalDependencies,
     });
 
     return this;
@@ -1304,7 +1303,16 @@ export class ServiceProvider {
    */
   private validateScopedResolution(desc: ServiceDescriptor, token: Token): void {
     if (this.validateScopes && desc.lifetime === ServiceLifetime.Scoped && this.parent === undefined) {
-      throw new Error(`Cannot resolve scoped service '${token.toString()}' from root provider. Create a scope first.`);
+      throw new Error(
+        [
+          `Cannot resolve scoped service '${this.describeToken(token)}' from the root provider.`,
+          'Scoped services require an explicit scope because they maintain per-scope state.',
+          'Create a scope first:',
+          '  const scope = provider.createScope();',
+          '  const service = await scope.getRequiredService(token);',
+          '  await scope.dispose();',
+        ].join('\n'),
+      );
     }
   }
 
@@ -1538,6 +1546,7 @@ export class ServiceProvider {
       throw new Error(`Invalid service descriptor for token '${desc.token.toString()}': ${JSON.stringify(desc)}`);
     }
 
+    this.ensureConstructorDependencies(desc, token);
     const dependencies = desc.dependencies ?? [];
     const supportsCircularDependency = token !== undefined;
 
@@ -1588,5 +1597,51 @@ export class ServiceProvider {
         );
       }
     }
+  }
+
+  private ensureConstructorDependencies(desc: ServiceDescriptor, token?: Token): void {
+    if (!desc.implementation) return;
+    const requiredParams = desc.implementation.length ?? 0;
+    if (requiredParams === 0) return;
+
+    const providedCount = desc.dependencies?.length ?? 0;
+    if (providedCount >= requiredParams) return;
+
+    const tokenName = this.describeToken(token ?? desc.token);
+    const implementationName = desc.implementation.name || tokenName;
+    const providedTokens =
+      desc.dependencies && desc.dependencies.length > 0
+        ? `[${desc.dependencies.map((dep) => this.describeToken(dep)).join(', ')}]`
+        : 'none';
+    const missingCount = requiredParams - providedCount;
+    const hint =
+      "Provide dependencies explicitly when registering the service (e.g., services.addScoped(Token, Implementation, [DependencyToken])). The container can't infer constructor parameters automatically.";
+
+    if (providedCount === 0) {
+      throw new Error(
+        [
+          `Cannot resolve service '${tokenName}'.`,
+          `Constructor of '${implementationName}' expects ${requiredParams} dependency parameter(s) but no dependency tokens were provided.`,
+          `Provided tokens: ${providedTokens}.`,
+          hint,
+        ].join(' '),
+      );
+    }
+
+    throw new Error(
+      [
+        `Cannot resolve service '${tokenName}'.`,
+        `Constructor of '${implementationName}' expects ${requiredParams} dependency parameter(s) but only ${providedCount} provided (missing ${missingCount}).`,
+        `Provided tokens: ${providedTokens}.`,
+        hint,
+      ].join(' '),
+    );
+  }
+
+  private describeToken(token?: Token): string {
+    if (!token) return 'Unknown token';
+    if (typeof token === 'string') return token;
+    if (typeof token === 'symbol') return token.toString();
+    return token.name || token.toString();
   }
 }

@@ -61,6 +61,37 @@ describe('ServiceCollection', () => {
       const result = services.addSingleton(token1).addSingleton(token2);
       expect(result).toBe(services);
     });
+
+    it('should throw error when constructor has dependencies but none provided', async () => {
+      const services = new ServiceCollection();
+      class Logger {}
+      class UserService {
+        constructor(private logger: Logger) {}
+      }
+
+      services.addSingleton(UserService);
+      const provider = services.buildServiceProvider();
+      await expect(provider.getRequiredService(UserService)).rejects.toThrow(
+        "Cannot resolve service 'UserService'. Constructor of 'UserService' expects 1 dependency parameter(s)",
+      );
+    });
+
+    it('should throw error when provided dependencies are fewer than constructor parameters', async () => {
+      const services = new ServiceCollection();
+      class Logger {}
+      class Database {}
+      class UserService {
+        constructor(private logger: Logger, private db: Database) {}
+      }
+      const LoggerToken = Symbol('Logger');
+
+      services.addSingleton(UserService, [LoggerToken]);
+      const provider = services.buildServiceProvider();
+
+      await expect(provider.getRequiredService(UserService)).rejects.toThrow(
+        "Cannot resolve service 'UserService'. Constructor of 'UserService' expects 2 dependency parameter(s) but only 1 provided",
+      );
+    });
   });
 
   describe('addScoped', () => {
@@ -1644,26 +1675,28 @@ describe('ServiceProvider', () => {
         }
       } catch (e) {
         // If reflection doesn't work, that's expected
-        expect((e as Error).message).toContain('No provider found');
+        const message = (e as Error).message;
+        expect(
+          message.includes('No provider found') ||
+            message.includes('expects 1 dependency token') ||
+            message.includes('Cannot resolve service'),
+        ).toBe(true);
       }
     });
 
-    it('should handle reflection metadata with class token', async () => {
+    it('should handle class token resolution when dependencies are provided', async () => {
       const services = new ServiceCollection();
       class TestService1 {}
       class TestService2 {
         constructor(public test1: TestService1) {}
       }
       services.addSingleton(TestService1);
-      services.addSingleton(TestService2);
+      services.addSingleton(TestService2, [TestService1]);
       const provider = services.buildServiceProvider();
-      // With class tokens, should work if TestService1 is registered
+      // With class tokens, should work when dependencies are provided
       const instance2 = await provider.getRequiredService<TestService2>(TestService2);
       expect(instance2).toBeInstanceOf(TestService2);
-      // test1 may or may not be resolved depending on reflection
-      if (instance2.test1) {
-        expect(instance2.test1).toBeInstanceOf(TestService1);
-      }
+      expect(instance2.test1).toBeInstanceOf(TestService1);
     });
 
     it('should handle mixed lifetimes', async () => {
@@ -1761,14 +1794,14 @@ describe('ServiceProvider', () => {
       const token = Symbol('Test');
       // Create a class with non-configurable properties
       class TestService {
-        constructor(public value: string) {}
+        constructor(public value: string = 'test') {}
       }
       Object.defineProperty(TestService.prototype, 'nonConfigurable', {
         value: 'test',
         configurable: false,
         writable: false,
       });
-      services.addSingleton(token, TestService, []);
+      services.addSingleton(token, TestService);
       const provider = services.buildServiceProvider();
       // Should still work despite property copying issues
       const instance = await provider.getRequiredService(token);
@@ -1830,7 +1863,7 @@ describe('ServiceProvider', () => {
         constructor(public test1: TestService1) {}
       }
       services.addSingleton(token1, TestService1);
-      services.addSingleton(token2, TestService2);
+      services.addSingleton(token2, TestService2, [token1]);
       services.tryAddSingleton(token2, TestService2, [token1]);
       const provider = services.buildServiceProvider();
       return expect(provider.getRequiredService(token2)).resolves.toBeInstanceOf(TestService2);

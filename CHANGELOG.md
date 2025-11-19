@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+## [1.3.11] - 2025-11-19
+
+### Added
+
+- GitHub Actions workflow `PR Tests` to automatically run lint/unit tests for every pull request and manual trigger.
+- npm publish automation now runs on every merge to `main`, ensuring package releases stay up to date without manual steps.
+
+### Changed
+
+- Scoped service resolution attempts from the root provider now emit a more professional message with explicit remediation steps.
+- Constructor dependency errors now report expected vs. provided dependency counts and list the supplied tokens.
+- `ServiceCollection` tests now cover missing-dependency scenarios to guard against regressions.
+
 ## [1.3.5] - 2025-11-16
 
 ### Added
@@ -95,7 +110,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive documentation
 - GitHub Pages documentation site
 
-[Unreleased]: https://github.com/nodelibraries/ioc/compare/v1.3.5...HEAD
+[Unreleased]: https://github.com/nodelibraries/ioc/compare/v1.3.11...HEAD
+[1.3.11]: https://github.com/nodelibraries/ioc/compare/v1.3.5...v1.3.11
 [1.3.5]: https://github.com/nodelibraries/ioc/compare/v1.3.4...v1.3.5
 [1.3.4]: https://github.com/nodelibraries/ioc/compare/v1.3.0...v1.3.4
 [1.3.0]: https://github.com/nodelibraries/ioc/compare/v1.2.0...v1.3.0
