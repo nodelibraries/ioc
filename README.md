@@ -93,10 +93,10 @@ const ILoggerToken = Symbol('ILogger');
 const IUserServiceToken = Symbol('IUserService');
 
 // Register services
-// ⚠️ IMPORTANT: If a class constructor has parameters (dependencies), you MUST provide them in the dependencies array.
+// ⚠️ IMPORTANT: If a class constructor has parameters (dependencies), you MUST provide them in the dependencies array,
+// and dependencies must appear in the array in the exact same order as the constructor parameters.
 services.addSingleton<ILogger>(ILoggerToken, Logger); // No dependencies - constructor has no parameters
 
-// ⚠️ IMPORTANT: The order of dependency tokens must match the constructor parameter order.
 services.addScoped<IUserService>(IUserServiceToken, UserService, [ILoggerToken]); // Has dependency - MUST provide [ILoggerToken]
 
 // Build provider
@@ -137,10 +137,10 @@ const services = new ServiceCollection();
 const ILoggerToken = Symbol('ILogger');
 const IUserServiceToken = Symbol('IUserService');
 
-// ⚠️ IMPORTANT: If a class constructor has parameters (dependencies), you MUST provide them in the dependencies array
+// ⚠️ IMPORTANT: If a class constructor has parameters (dependencies), you MUST provide them in the dependencies array,
+// and dependencies must appear in the array in the exact same order as the constructor parameters.
 services.addSingleton(ILoggerToken, Logger);
 
-// ⚠️ IMPORTANT: The order of dependency tokens must match the constructor parameter order.
 services.addScoped(IUserServiceToken, UserService, [ILoggerToken]);
 
 const provider = services.buildServiceProvider();
