@@ -62,7 +62,7 @@ const userService = await provider.getRequiredService<IUserService>(IUserService
 
 ## Explicit Dependencies
 
-**⚠️ IMPORTANT:** If your class constructor has parameters (dependencies), you **MUST** provide them in the dependencies array. The container cannot automatically infer dependencies from the constructor.
+**⚠️ IMPORTANT:** If your class constructor has parameters (dependencies), you **MUST** provide them in the dependencies array, and the order must match the constructor parameter order. The container cannot automatically infer dependencies from the constructor.
 
 ```typescript
 // ✅ CORRECT: Constructor has ILogger parameter, so we provide [ILoggerToken]
