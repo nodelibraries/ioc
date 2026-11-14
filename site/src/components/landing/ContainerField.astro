@@ -1,7 +1,9 @@
 ---
 /**
- * Hero backdrop: dependencies flowing into one container node and out to the services built from it. Pulses are
- * coloured by lifetime (singleton, scoped, transient). Pure SVG + SMIL, deterministic layout, no JS.
+ * Hero backdrop: a dependency constellation. The container sits at the centre (behind the headline), scopes are
+ * slowly turning dashed rings around it, services are nodes on those rings, and each node hangs off a node one
+ * ring further in (its dependency). Instances travel outward along the edges, coloured by lifetime: singleton
+ * (amber), scoped (rose), transient (accent). Pure SVG + SMIL, deterministic layout, no JS.
  */
 interface Props {
   intensity?: 'hero' | 'quiet';
@@ -9,90 +11,141 @@ interface Props {
 const { intensity = 'hero' } = Astro.props;
 
 // Deterministic PRNG so the artwork is identical on every build.
-let seed = 7;
+let seed = 11;
 const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
 
 const W = 1440;
 const H = 760;
-const node = { x: 720, y: 380 };
+const c = { x: 720, y: 380 };
+// Rings are squashed into ellipses so the wide hero gets a sense of depth.
+const SQUASH = 0.58;
+const rings = [
+  { r: 170, count: 6 },
+  { r: 300, count: 10 },
+  { r: 450, count: 14 },
+  { r: 620, count: 18 },
+];
 
-const lanes = Array.from({ length: 11 }, (_, i) => {
-  const y = 90 + i * 58 + (rand() - 0.5) * 18;
-  const outY = node.y + (y - node.y) * 0.55;
-  const inPath = `M -40 ${y.toFixed(1)} C ${(260 + rand() * 120).toFixed(1)} ${y.toFixed(1)}, ${(470 + rand() * 60).toFixed(1)} ${(node.y + (y - node.y) * 0.2).toFixed(1)}, ${node.x - 36} ${node.y}`;
-  const outPath = `M ${node.x + 36} ${node.y} C ${(930 + rand() * 60).toFixed(1)} ${(node.y + (outY - node.y) * 0.3).toFixed(1)}, ${(1150 + rand() * 80).toFixed(1)} ${outY.toFixed(1)}, ${W + 40} ${outY.toFixed(1)}`;
-  return { inPath, outPath, i };
+type Kind = 'singleton' | 'scoped' | 'transient';
+type Node = { ring: number; angle: number; x: number; y: number; kind: Kind };
+const nodes: Node[] = [];
+rings.forEach((ring, k) => {
+  const offset = rand() * Math.PI * 2;
+  for (let i = 0; i < ring.count; i++) {
+    const angle = offset + (i / ring.count) * Math.PI * 2 + (rand() - 0.5) * 0.22;
+    const r = rand();
+    nodes.push({
+      ring: k,
+      angle,
+      x: c.x + Math.cos(angle) * ring.r,
+      y: c.y + Math.sin(angle) * ring.r * SQUASH,
+      // Inner rings hold more singletons, outer rings more transients, like a real graph.
+      kind: r < 0.45 - k * 0.08 ? 'singleton' : r < 0.75 - k * 0.04 ? 'scoped' : 'transient',
+    });
+  }
 });
 
-type Pulse = { lane: number; kind: 'ok' | 'fail' | 'probe'; dur: number; begin: number };
-// ok = transient (a new one flows out every time); fail = scoped, probe = singleton: they settle in the container (cached).
-const pulses: Pulse[] = Array.from({ length: intensity === 'hero' ? 26 : 12 }, () => {
-  const r = rand();
-  return {
-    lane: Math.floor(rand() * lanes.length),
-    kind: r < 0.68 ? 'ok' : r < 0.9 ? 'fail' : 'probe',
-    dur: 3.2 + rand() * 2.6,
-    begin: -rand() * 8,
-  };
+const angleGap = (a: number, b: number) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+
+// Each node depends on the closest node (by angle) one ring in; the innermost ring depends on the container.
+const edges = nodes.map((n, i) => {
+  const parent =
+    n.ring === 0
+      ? { x: c.x + Math.cos(n.angle) * 46, y: c.y + Math.sin(n.angle) * 46 * SQUASH }
+      : nodes.filter((m) => m.ring === n.ring - 1).sort((a, b) => angleGap(a.angle, n.angle) - angleGap(b.angle, n.angle))[0];
+  // A gentle bend, always to the same side, reads as orbiting flow rather than a straight spoke.
+  const mx = (parent.x + n.x) / 2 + (n.y - parent.y) * 0.18;
+  const my = (parent.y + n.y) / 2 - (n.x - parent.x) * 0.18 * SQUASH;
+  return { i, kind: n.kind, d: `M ${parent.x.toFixed(1)} ${parent.y.toFixed(1)} Q ${mx.toFixed(1)} ${my.toFixed(1)} ${n.x.toFixed(1)} ${n.y.toFixed(1)}` };
 });
 
-const color = { ok: 'var(--io-accent)', fail: 'var(--io-scoped)', probe: 'var(--io-singleton)' };
+const pulses = Array.from({ length: intensity === 'hero' ? 30 : 14 }, () => {
+  const edge = edges[Math.floor(rand() * edges.length)];
+  return { edge, dur: 2.4 + rand() * 2.2, begin: -rand() * 9, pause: 1.5 + rand() * 4 };
+});
+
+const color: Record<Kind, string> = {
+  singleton: 'var(--io-singleton)',
+  scoped: 'var(--io-scoped)',
+  transient: 'var(--io-accent)',
+};
 ---
 
-<svg class:list={['io-signal', intensity]} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+<svg class:list={['io-field', intensity]} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" aria-hidden="true">
   <defs>
     <radialGradient id="io-glow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="var(--io-accent)" stop-opacity="0.22"></stop>
-      <stop offset="60%" stop-color="var(--io-accent)" stop-opacity="0.04"></stop>
+      <stop offset="0%" stop-color="var(--io-accent)" stop-opacity="0.24"></stop>
+      <stop offset="55%" stop-color="var(--io-accent)" stop-opacity="0.05"></stop>
       <stop offset="100%" stop-color="var(--io-accent)" stop-opacity="0"></stop>
     </radialGradient>
-    <linearGradient id="io-fade-x" x1="0" x2="1">
-      <stop offset="0" stop-color="white" stop-opacity="0"></stop>
-      <stop offset="0.18" stop-color="white" stop-opacity="1"></stop>
-      <stop offset="0.82" stop-color="white" stop-opacity="1"></stop>
-      <stop offset="1" stop-color="white" stop-opacity="0"></stop>
-    </linearGradient>
-    <mask id="io-mask-x"><rect width={W} height={H} fill="url(#io-fade-x)"></rect></mask>
   </defs>
 
+  <ellipse cx={c.x} cy={c.y} rx="300" ry={300 * SQUASH} fill="url(#io-glow)"></ellipse>
 
-  <circle cx={node.x} cy={node.y} r="260" fill="url(#io-glow)"></circle>
-
-  <g mask="url(#io-mask-x)" fill="none" stroke-linecap="round">
-    {lanes.map((l) => (
-      <>
-        <path id={`io-in-${l.i}`} d={l.inPath} class="lane"></path>
-        <path id={`io-out-${l.i}`} d={l.outPath} class="lane out"></path>
-      </>
+  <g fill="none">
+    {rings.map((ring, k) => (
+      <ellipse cx={c.x} cy={c.y} rx={ring.r} ry={ring.r * SQUASH} class="scope" stroke-dasharray={k % 2 ? '2 10' : '14 12'}>
+        <animate
+          attributeName="stroke-dashoffset"
+          from="0"
+          to={k % 2 ? '-240' : '260'}
+          dur={`${28 + k * 9}s`}
+          repeatCount="indefinite"
+        ></animate>
+      </ellipse>
     ))}
 
-    {pulses.map((p) => (
-      <g>
-        <circle r={p.kind === 'ok' ? 2.6 : 3} fill={color[p.kind]} class={`pulse ${p.kind}`}>
-          <animateMotion dur={`${p.dur}s`} begin={`${p.begin}s`} repeatCount="indefinite" keyPoints={p.kind === 'ok' ? '0;1' : '0;1'} keyTimes="0;1" calcMode="linear">
-            <mpath href={`#io-in-${p.lane}`}></mpath>
-          </animateMotion>
-          {p.kind !== 'ok' && <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur={`${p.dur}s`} begin={`${p.begin}s`} repeatCount="indefinite"></animate>}
-        </circle>
-        {p.kind === 'ok' && (
-          <circle r="2.6" fill={color.ok} class="pulse ok">
-            <animateMotion dur={`${(p.dur * 0.8).toFixed(2)}s`} begin={`${(p.begin + p.dur * 0.5).toFixed(2)}s`} repeatCount="indefinite">
-              <mpath href={`#io-out-${p.lane}`}></mpath>
-            </animateMotion>
-          </circle>
-        )}
-      </g>
-    ))}
+    {edges.map((e) => <path id={`io-edge-${e.i}`} d={e.d} class="edge"></path>)}
   </g>
 
+  {nodes.map((n, i) => (
+    <circle cx={n.x.toFixed(1)} cy={n.y.toFixed(1)} r={n.kind === 'singleton' ? 3.4 : 2.6} fill={color[n.kind]} class={`node ${n.kind}`}>
+      {n.kind !== 'singleton' && (
+        <animate
+          attributeName="opacity"
+          values="0.25;0.9;0.25"
+          dur={`${(3 + ((i * 7) % 5)).toFixed(1)}s`}
+          begin={`${(-((i * 13) % 9)).toFixed(1)}s`}
+          repeatCount="indefinite"
+        ></animate>
+      )}
+    </circle>
+  ))}
+
+  {pulses.map((p) => {
+    const total = p.dur + p.pause;
+    const travel = (p.dur / total).toFixed(3);
+    return (
+      <circle r="2.4" fill={color[p.edge.kind]} class={`pulse ${p.edge.kind}`}>
+        <animateMotion
+          dur={`${total.toFixed(2)}s`}
+          begin={`${p.begin.toFixed(2)}s`}
+          repeatCount="indefinite"
+          keyPoints="0;1;1"
+          keyTimes={`0;${travel};1`}
+          calcMode="linear"
+        >
+          <mpath href={`#io-edge-${p.edge.i}`}></mpath>
+        </animateMotion>
+        <animate
+          attributeName="opacity"
+          values="0;1;1;0;0"
+          keyTimes={`0;0.06;${(Number(travel) * 0.92).toFixed(3)};${travel};1`}
+          dur={`${total.toFixed(2)}s`}
+          begin={`${p.begin.toFixed(2)}s`}
+          repeatCount="indefinite"
+        ></animate>
+      </circle>
+    );
+  })}
 </svg>
 
 <style>
-  .io-signal {
+  .io-field {
     /* Dot grid as one CSS background: ~1000 SVG circles cost seconds of main-thread render time. */
-    background: radial-gradient(circle, color-mix(in oklab, currentColor 45%, transparent) 1px, transparent 1.5px) 0 0 / 32px 32px;
-    -webkit-mask-image: radial-gradient(ellipse 60% 70% at 50% 50%, #000 0%, rgb(0 0 0 / 0.25) 70%, transparent 100%);
-    mask-image: radial-gradient(ellipse 60% 70% at 50% 50%, #000 0%, rgb(0 0 0 / 0.25) 70%, transparent 100%);
+    background: radial-gradient(circle, color-mix(in oklab, currentColor 40%, transparent) 1px, transparent 1.5px) 0 0 / 28px 28px;
+    -webkit-mask-image: radial-gradient(ellipse 62% 72% at 50% 50%, #000 0%, rgb(0 0 0 / 0.25) 70%, transparent 100%);
+    mask-image: radial-gradient(ellipse 62% 72% at 50% 50%, #000 0%, rgb(0 0 0 / 0.25) 70%, transparent 100%);
     position: absolute;
     inset: 0;
     width: 100%;
@@ -100,24 +153,38 @@ const color = { ok: 'var(--io-accent)', fail: 'var(--io-scoped)', probe: 'var(--
     color: var(--io-text-faint);
     pointer-events: none;
   }
-  .io-signal.quiet {
+  .io-field.quiet {
     opacity: 0.55;
   }
-  .lane {
+  .scope {
+    stroke: color-mix(in oklab, var(--io-accent) 42%, transparent);
+    stroke-width: 1.2;
+  }
+  .edge {
     stroke: var(--io-hairline-strong);
     stroke-width: 1;
   }
-  .lane.out {
-    stroke: color-mix(in oklab, var(--io-accent) 22%, transparent);
+  .node.singleton {
+    filter: drop-shadow(0 0 5px var(--io-singleton));
   }
-  .pulse.ok {
-    filter: drop-shadow(0 0 6px var(--io-accent));
+  .pulse {
+    filter: drop-shadow(0 0 6px currentColor);
   }
-  .pulse.fail {
-    filter: drop-shadow(0 0 6px var(--io-scoped));
+  .pulse.transient {
+    color: var(--io-accent);
+  }
+  .pulse.scoped {
+    color: var(--io-scoped);
+  }
+  .pulse.singleton {
+    color: var(--io-singleton);
   }
   @media (prefers-reduced-motion: reduce) {
     .pulse {
+      display: none;
+    }
+    .scope animate,
+    .node animate {
       display: none;
     }
   }
