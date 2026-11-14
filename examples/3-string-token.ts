@@ -55,7 +55,7 @@ async function main() {
   console.log('Users:', users);
 }
 
-main().catch(console.error);
+await main();
 
 /*
 Expected Console Output:

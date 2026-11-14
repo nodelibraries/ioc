@@ -117,7 +117,7 @@ async function main() {
   console.log('  - Code is more readable and safe');
 }
 
-main().catch(console.error);
+await main();
 
 /*
 Expected Console Output:

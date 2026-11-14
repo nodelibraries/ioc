@@ -1,0 +1,105 @@
+---
+title: Multiple implementations
+description: Register several implementations of one token, resolve all of them with getServices, and let the last one win for getService.
+sidebar:
+  order: 3
+---
+
+Registering the same token more than once doesn't overwrite anything: every registration is kept, in order. This is
+how plugins, middleware chains, validators and event handlers are usually wired, and it matches .NET's
+`IEnumerable<T>` injection.
+
+## All of them, or the last one
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+
+interface Validator {
+  validate(order: { total: number; items: number }): string | undefined;
+}
+const Validator = createToken<Validator>('Validator');
+
+class PositiveTotal implements Validator {
+  validate(o: { total: number }) {
+    return o.total > 0 ? undefined : 'total must be positive';
+  }
+}
+class NotEmpty implements Validator {
+  validate(o: { items: number }) {
+    return o.items > 0 ? undefined : 'order is empty';
+  }
+}
+
+const services = new ServiceCollection();
+services.addSingleton(Validator, PositiveTotal);
+services.addSingleton(Validator, NotEmpty);
+
+const provider = services.buildServiceProvider();
+
+const all = await provider.getServices(Validator); // [PositiveTotal, NotEmpty], registration order
+const last = await provider.getRequiredService(Validator); // NotEmpty: the last registration wins
+
+const errors = all.map((v) => v.validate({ total: 0, items: 0 })).filter(Boolean);
+```
+
+- `getServices(token)` resolves every plain registration in registration order. It returns `[]` when there is none.
+- `getService` / `getRequiredService` (and dependency injection through `[deps]`) use the **last** registration. That
+  makes "register a default, let the app register its own later" work without removing anything.
+- Keyed registrations are never part of `getServices`; see [Keyed services](/guides/keyed-services/).
+
+## Each registration has its own instance
+
+Two registrations are two services, even when they use the same class and lifetime. Two singleton registrations give
+two singletons; two scoped registrations give two instances per scope:
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+class Handler {}
+
+const services = new ServiceCollection();
+services.addScoped('handlers', Handler);
+services.addScoped('handlers', Handler);
+
+const provider = services.buildServiceProvider();
+await using scope = provider.createScope();
+
+const [a, b] = await scope.getServices('handlers');
+a === b; // false: one instance per registration
+(await scope.getService('handlers')) === b; // true: the last registration's scoped instance
+```
+
+The lifetime still applies per registration: calling `getServices` twice in the same scope returns the same scoped
+instances, and in another scope, new ones.
+
+## Injecting the whole list
+
+Dependency arrays inject one service per token. To give a class every implementation, use a factory:
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+
+interface Plugin {
+  name: string;
+  start(): Promise<void>;
+}
+const Plugin = createToken<Plugin>('Plugin');
+// ---cut---
+class PluginHost {
+  constructor(private readonly plugins: Plugin[]) {}
+  async startAll() {
+    for (const p of this.plugins) await p.start();
+  }
+}
+
+const services = new ServiceCollection();
+services.addSingleton(Plugin, () => ({ name: 'metrics', start: async () => {} }));
+services.addSingleton(Plugin, () => ({ name: 'audit', start: async () => {} }));
+services.addSingleton(PluginHost, async (p) => new PluginHost(await p.getServices(Plugin)));
+```
+
+## Related
+
+- [Service management](/guides/service-management/): `tryAdd*` to register only if nothing is there yet
+- [Keyed services](/guides/keyed-services/): pick one implementation by key
+- [Registration](/concepts/registration/)

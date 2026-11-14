@@ -107,11 +107,11 @@ async function main() {
   console.log(`Cache exists after remove? ${await provider1b.isService<ICache>(ICacheToken)}`); // true
   console.log(`Config exists after remove? ${await provider1b.isService<IConfig>(IConfigToken)}`); // true
 
-  // RemoveAll (same as remove)
-  services1.removeAll<ICache>(ICacheToken);
+  // remove() also drops keyed registrations of the token
+  services1.remove(ICacheToken);
   const provider1c = services1.buildServiceProvider();
-  console.log(`\nCache exists after removeAll? ${await provider1c.isService<ICache>(ICacheToken)}`); // false
-  console.log(`Config exists after removeAll? ${await provider1c.isService<IConfig>(IConfigToken)}`); // true
+  console.log(`\nCache exists after second remove? ${await provider1c.isService<ICache>(ICacheToken)}`); // false
+  console.log(`Config exists after second remove? ${await provider1c.isService<IConfig>(IConfigToken)}`); // true
 
   // ============================================
   // 2. Test Scenario - Mock Replacement
@@ -184,7 +184,7 @@ async function main() {
   console.log('  - Conditional service registration');
 }
 
-main().catch(console.error);
+await main();
 
 /*
 Expected Console Output:
@@ -202,8 +202,8 @@ Logger exists after remove? false
 Cache exists after remove? true
 Config exists after remove? true
 
-Cache exists after removeAll? false
-Config exists after removeAll? true
+Cache exists after second remove? false
+Config exists after second remove? true
 
 --- 2. Test Scenario - Mock Replacement ---
 

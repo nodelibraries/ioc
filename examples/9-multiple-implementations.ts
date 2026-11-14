@@ -50,7 +50,7 @@ async function main() {
   services.addSingleton<IMessageWriter>(IMessageWriterToken, FileWriter);
   services.addSingleton<IMessageWriter>(IMessageWriterToken, EmailWriter);
 
-  const provider = services.buildServiceProvider();
+  let provider = services.buildServiceProvider();
 
   // Get all implementations
   const writers = await provider.getServices<IMessageWriter>(IMessageWriterToken);
@@ -103,6 +103,8 @@ async function main() {
 
   services.addScoped<INotificationService>(INotificationServiceToken, notificationFactory);
 
+  // Registrations are snapshotted at build time: rebuild after adding services.
+  provider = services.buildServiceProvider();
   const scope = provider.createScope();
   const notificationService = await scope.getRequiredService<INotificationService>(INotificationServiceToken);
   notificationService.notify('Important update!');
@@ -151,7 +153,7 @@ async function main() {
   console.log('\n✅ Multiple implementations are working!');
 }
 
-main().catch(console.error);
+await main();
 
 /*
 Expected Console Output:

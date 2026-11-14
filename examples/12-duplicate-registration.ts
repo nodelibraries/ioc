@@ -204,7 +204,7 @@ async function main() {
   console.log('      - Or use factory pattern');
 }
 
-main().catch(console.error);
+await main();
 
 /*
 Expected Console Output:

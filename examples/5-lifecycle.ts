@@ -109,7 +109,7 @@ async function main() {
   await scope2.dispose();
 }
 
-main().catch(console.error);
+await main();
 
 /*
 Expected Console Output:
@@ -129,10 +129,11 @@ Getting CacheService...
 Cache value: value1
 
 --- Disposing scope 1 ---
-  → DatabaseConnection.onDestroy() called
-  → Database connection closed
+(reverse creation order: the cache was created last, so it is destroyed first)
   → CacheService.onDestroy() called
   → Cache cleared
+  → DatabaseConnection.onDestroy() called
+  → Database connection closed
 
 --- Creating scope 2 ---
 Getting DatabaseConnection...

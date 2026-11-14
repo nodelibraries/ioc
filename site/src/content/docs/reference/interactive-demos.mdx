@@ -1,0 +1,26 @@
+---
+title: Interactive demos
+description: Live widgets that run the real container in the browser, the lifetime simulator, dependency graph and the landing-page demo.
+sidebar:
+  hidden: true
+---
+
+import LifetimeSimulator from '../../../components/LifetimeSimulator.tsx';
+import DependencyGraph from '../../../components/DependencyGraph.tsx';
+import HeroDemo from '../../../components/HeroDemo.tsx';
+
+Preview page for the interactive components. Each one runs the real `@nodelibraries/ioc` source in the page.
+
+## Lifetimes and scopes
+
+<LifetimeSimulator client:visible />
+
+## Dependency graph
+
+<DependencyGraph client:visible preset="app" />
+
+## Landing-page demo
+
+<HeroDemo client:visible />
+
+For free-form code, open the [playground](/playground/).

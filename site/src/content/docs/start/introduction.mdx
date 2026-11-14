@@ -1,0 +1,81 @@
+---
+title: Introduction
+description: '@nodelibraries/ioc is a type-safe dependency-injection container for TypeScript, modeled on .NET ServiceCollection and ServiceProvider.'
+sidebar:
+  order: 1
+---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+`@nodelibraries/ioc` builds your object graph for you. You register each service once, with a lifetime and the tokens of
+its dependencies, and ask the container for what you need. It creates instances in the right order, shares them
+according to their lifetime and disposes them when a scope ends.
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+
+interface Logger {
+  log(message: string): void;
+}
+const Logger = createToken<Logger>('Logger');
+
+class ConsoleLogger implements Logger {
+  log(message: string) {
+    console.log(message);
+  }
+}
+
+class UserService {
+  constructor(private readonly logger: Logger) {}
+  list() {
+    this.logger.log('listing users');
+    return ['Ada', 'Linus'];
+  }
+}
+
+const services = new ServiceCollection();
+services.addSingleton(Logger, ConsoleLogger);
+services.addScoped(UserService, [Logger]);
+
+const provider = services.buildServiceProvider({ validateScopes: true });
+
+await using scope = provider.createScope();
+const users = await scope.getRequiredService(UserService);
+users.list();
+```
+
+`UserService` needs a `Logger`, so it is registered with `[Logger]`: one token per constructor parameter, in order.
+The compiler checks typed tokens in that list against the constructor's parameter types, and the container checks the count at registration.
+
+## What you get
+
+| Need | Feature |
+|---|---|
+| Share or isolate instances | [Singleton, scoped and transient lifetimes](/concepts/lifetimes/), [scopes](/concepts/scopes/) |
+| Interfaces as dependencies | [Typed tokens](/concepts/tokens/) with `createToken<T>()`, abstract classes, strings, symbols |
+| Catch wiring mistakes early | [Type-checked dependencies](/concepts/dependencies/), [`validateScopes` and `validateOnBuild`](/concepts/validation/) |
+| Clean shutdown | [`onInit`, `onDestroy`, `Symbol.dispose`](/concepts/lifecycle/) and `await using` |
+| Real-world graphs | [Circular dependencies](/concepts/circular-dependencies/), [factories](/guides/factories/), [keyed services](/guides/keyed-services/), [multiple implementations](/guides/multiple-implementations/) |
+| Errors you can handle | [Typed errors](/concepts/errors/) with the resolution path in the message |
+
+No decorators, no `reflect-metadata`, no compiler plugins. Classes stay plain classes. The package has zero
+dependencies, ships ESM and CommonJS builds with type declarations, and runs on Node.js 20 or later (and in browsers:
+this site runs it in its [playground](/playground/)).
+
+## When to use it
+
+- Your app has more than a handful of services and wiring them by hand in `main.ts` is getting long.
+- You need per-request state (a request ID, a database transaction, the current user) without threading it through every call.
+- You want tests to swap one dependency (a clock, a mail sender) without touching the code under test.
+- You know .NET's `IServiceCollection` and want the same model in TypeScript.
+
+If your app is a single file with three objects, `new` is fine. A container pays off when the graph grows.
+
+## Next steps
+
+<CardGrid>
+  <LinkCard title="Installation" href="/start/installation/" description="Package managers, ESM/CJS, TypeScript settings." />
+  <LinkCard title="Quick start" href="/start/quick-start/" description="From two classes to a request-scoped app in five steps." />
+  <LinkCard title="Why a container?" href="/start/why/" description="What DI is, and how this one differs from others." />
+  <LinkCard title="Playground" href="/playground/" description="Run snippets against the real library in your browser." />
+</CardGrid>

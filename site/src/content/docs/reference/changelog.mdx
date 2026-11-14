@@ -1,0 +1,48 @@
+---
+title: Changelog
+description: Release notes for @nodelibraries/ioc.
+sidebar:
+  order: 2
+---
+
+## 2.0.0 (2026-11-14)
+
+A rewrite of the resolution engine; the registration API keeps its shape. See
+[Upgrading from 1.x to 2.0](/migration/v1-to-v2/) for the upgrade steps. Earlier releases are listed in the
+[repository changelog](https://github.com/nodelibraries/ioc/blob/main/CHANGELOG.md).
+
+**Added**
+
+- `createToken<T>(name)` and `InjectionToken<T>`: typed tokens whose resolved type is inferred. Abstract classes are
+  accepted as tokens.
+- Compile-time checks of dependency arrays against constructor parameters (when `T` is inferred).
+- Keyed registrations accept a dependency array: `addKeyedSingleton(token, Impl, key, [deps])`. Keyed factories receive
+  the key.
+- Typed errors: `IocError`, `ServiceNotFoundError` (`token`, `key`, `path`), `CircularDependencyError` (`path`),
+  `ScopeError`, `RegistrationError`, `ValidationError` (`errors`), `DisposedError`.
+- `has(token, key?)` on the collection; `isService(token, key?)` on the provider is now synchronous.
+- Disposal via `[Symbol.asyncDispose]` / `[Symbol.dispose]`, in reverse creation order, and `await using` support on
+  providers and scopes.
+- `validateOnBuild` reports captive scoped services (with `validateScopes`) as well as missing dependencies.
+- Detection of deadlocking concurrent resolution chains.
+
+**Changed**
+
+- Dependency counts are checked at registration (`RegistrationError`) instead of at resolution.
+- Only `class` syntax is treated as an implementation; every other function is a factory.
+- Keyed registrations are separate from plain ones: `getService(token)` never returns a keyed service.
+- Every registration has its own instance, including several scoped registrations of one token.
+- Concurrent resolutions of a singleton or scoped service share one instance.
+- Circular dependencies resolve through a proxy for every lifetime; identity holds and `#private` fields work. Using a
+  partner inside a constructor throws `CircularDependencyError`.
+- Factories receive a provider view that carries the resolution chain; `onInit` runs for class registrations only.
+- `replace` keeps the lifetime of the registration it replaces.
+- `remove` also removes keyed registrations.
+- `dispose()` disposes every instance, then rethrows errors instead of logging them. Values are never disposed.
+- `null` and `undefined` are valid values for `addValue`.
+- `buildServiceProvider` snapshots the registrations.
+- ESM and CommonJS builds; Node >= 20; zero dependencies.
+
+**Removed**
+
+- `removeAll(token)`: use `remove(token)`.

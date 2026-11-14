@@ -1,0 +1,161 @@
+---
+title: Upgrading from 1.x to 2.0
+description: What changed between @nodelibraries/ioc 1.x and 2.0, with a before/after table and a step-by-step checklist.
+sidebar:
+  order: 1
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+2.0 rewrites the resolution engine of `@nodelibraries/ioc` (last 1.x release: 1.3.12). The shape of the API is the same:
+`ServiceCollection`, `ServiceProvider`, the three lifetimes, keyed services, `tryAdd*`, `addValue`, scopes, lifecycle
+hooks and the dependency-tree helpers. Most apps upgrade by bumping the version and fixing what the compiler and the new
+registration-time checks point out.
+
+<Aside type="caution" title="Register everything before you build">
+`buildServiceProvider()` now takes a snapshot of the registrations. A service added to the collection **after** the
+provider was built is invisible to that provider (and its scopes). 1.x shared one registry, so code that
+registered late (in a plugin, a route handler, a test) worked by accident. Move every registration before the build,
+or build a new provider.
+</Aside>
+
+## At a glance
+
+| Area | 1.x | 2.0 |
+| --- | --- | --- |
+| Package format | CommonJS, Node >= 18 | ESM + CJS, Node >= 20 |
+| Interface tokens | `Symbol('ILogger')` + `getRequiredService<ILogger>(token)` | `createToken<ILogger>('ILogger')`, resolved type is inferred |
+| Abstract classes as tokens | Not accepted by the `Token` type | Accepted |
+| Dependency types | Not checked | Checked against constructor parameters when `T` is inferred |
+| Too few dependencies | Error at **resolve** time | `RegistrationError` at **registration** time |
+| Factory or class? | Any function with a `prototype` was a class | Only `class` syntax is a class; every other function is a factory |
+| Keyed registrations | Also returned by `getService(token)` | Separate: only `getKeyedService(token, key)` returns them |
+| Keyed dependencies | `addKeyed*(token, impl, key)`, no dependency array | `addKeyed*(token, impl, key, [deps])` |
+| Keyed factories | Called with `(provider)` | Called with `(provider, key)` |
+| `removeAll(token)` | Alias of `remove` | Removed: use `remove(token)` |
+| `remove(token)` | Left keyed registrations in place | Removes keyed registrations too |
+| `replace(token, ...)` | Always registered a singleton | Keeps the lifetime of the replaced registration |
+| `provider.isService(token)` | `Promise<boolean>` | `boolean`, plus an optional `key` |
+| `null` / `undefined` values | `getRequiredService` threw | Valid values, returned as is |
+| Errors | `Error` with a message | Typed: `ServiceNotFoundError`, `CircularDependencyError`, `ScopeError`, `RegistrationError`, `ValidationError`, `DisposedError` (all extend `IocError`) |
+| `validateOnBuild` failure | `Error('Validation failed on build: ...')` | `ValidationError` with `errors: string[]`; also reports captive scoped services when `validateScopes` is on |
+| Disposal | `onDestroy()` only; errors logged with `console.error` and swallowed | Reverse creation order; `onDestroy()`, else `[Symbol.asyncDispose]`, else `[Symbol.dispose]`; errors rethrown after every instance is disposed |
+| Registering after `buildServiceProvider()` | Visible to the built provider (shared state) | Ignored: the provider keeps the registrations it was built with |
+| `await using` | No | `await using scope = provider.createScope()` |
+| `ServiceLifetime` | `enum` | `const` object + type (same `'SINGLETON'`, `'SCOPED'`, `'TRANSIENT'` values) |
+
+## Before and after
+
+Before:
+
+```ts
+import { ServiceCollection } from '@nodelibraries/ioc';
+
+const ILogger = Symbol('ILogger');
+const IUserService = Symbol('IUserService');
+
+services.addSingleton<ILogger>(ILogger, Logger);
+services.addScoped<IUserService>(IUserService, UserService, [ILogger]);
+
+const scope = provider.createScope();
+const users = await scope.getRequiredService<IUserService>(IUserService);
+await scope.dispose();
+```
+
+After:
+
+```ts twoslash
+interface ILogger {
+  log(msg: string): void;
+}
+interface IUserService {
+  list(): string[];
+}
+class Logger implements ILogger {
+  log(msg: string) {}
+}
+class UserService implements IUserService {
+  constructor(private readonly logger: ILogger) {}
+  list() {
+    return [];
+  }
+}
+// ---cut---
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+
+const ILogger = createToken<ILogger>('ILogger');
+const IUserService = createToken<IUserService>('IUserService');
+
+const services = new ServiceCollection();
+services.addSingleton(ILogger, Logger);
+services.addScoped(IUserService, UserService, [ILogger]); // checked: UserService needs an ILogger
+
+const provider = services.buildServiceProvider({ validateScopes: true });
+await using scope = provider.createScope(); // disposed at the end of the block
+const users = await scope.getRequiredService(IUserService);
+//    ^?
+```
+
+Symbol and string tokens with explicit type arguments still work, so you can migrate tokens gradually. Explicit
+`addScoped<IUserService>(...)` compiles too, but skips the dependency type check: drop the type argument to get it.
+
+## Checklist
+
+<Steps>
+
+1. **Upgrade.** `npm install @nodelibraries/ioc@^2`. The import path does not change.
+
+2. **Replace `removeAll(token)` with `remove(token)`.** Note that `remove` now also drops the token's keyed
+   registrations.
+
+3. **Run the app or the test suite once.** Registrations that pass fewer dependency tokens than the constructor has
+   parameters now throw a `RegistrationError` while registering, not later when resolving. Add the missing tokens.
+
+4. **Check functions passed as implementations.** If you passed an ES5-style constructor function (or a class compiled to
+   ES5) as the implementation, it is now called as a factory. Use `class` syntax or wrap it: `() => new Legacy()`.
+
+5. **Check keyed services.** Code that registered `addKeyedSingleton(Cache, RedisCache, 'redis')` and then called
+   `getService(Cache)` used to get the keyed instance. Now it gets `undefined` (or a `ServiceNotFoundError` from
+   `getRequiredService`). Register a plain default too, or resolve with the key. Keyed classes with constructor
+   parameters can now take a dependency array instead of a factory.
+
+6. **Check `replace`.** It used to turn every replaced service into a singleton. It now keeps the old lifetime, which is
+   probably what you wanted; if you relied on the old behaviour, `remove` then `addSingleton`.
+
+7. **Drop `await` from `isService`.** It is synchronous now. (`await` on a boolean still works, so this is cleanup.)
+
+8. **Update error handling.** Replace message matching (`/No provider found/`) with `instanceof ServiceNotFoundError`,
+   `instanceof ScopeError` and so on. See [Errors](/concepts/errors/).
+
+9. **Review disposal.** `dispose()` now rejects when an `onDestroy` throws (after disposing everything else) instead of
+   logging. Instances with `[Symbol.dispose]` / `[Symbol.asyncDispose]` are now disposed too. Values registered with
+   `addValue` are never disposed.
+
+10. **Optional: move to typed tokens.** Replace `Symbol('X')` + `getRequiredService<X>(token)` with `createToken<X>('X')`
+    and remove the type arguments, so dependencies are type-checked.
+
+</Steps>
+
+## New in 2.0
+
+- [Typed tokens](/concepts/tokens/) with `createToken`, and abstract classes as tokens.
+- [Compile-time dependency checks](/concepts/dependencies/).
+- Concurrent resolutions (`Promise.all`) of a singleton or scoped service share one instance; transients stay distinct.
+- [Circular dependencies](/concepts/circular-dependencies/) resolve through a proxy that keeps identity
+  (`a.b.a === a`) and works with `#private` fields; using a partner inside a constructor throws a
+  `CircularDependencyError` with the path. Cycles through factories and between concurrent resolutions are detected too.
+- Factories receive a provider that carries the resolution chain, so scope validation and cycle detection work through
+  them. See [Factories](/guides/factories/).
+- `onInit` runs for class registrations only; factories initialize their own instance.
+- `buildServiceProvider` snapshots the registrations: changing the collection later doesn't affect built providers.
+
+<Aside type="note">
+`getDependencyTree`, `visualizeDependencyTree`, `getCircularDependencies` and `visualizeCircularDependencies` return
+the same shapes as before. One text change: the cycle report header now reads `Found 2 circular dependencies:` instead
+of `Found 2 circular dependency/ies:`. Update snapshot tests that match it. See [Diagnostics](/guides/diagnostics/).
+</Aside>
+
+## Related
+
+- [Coming from .NET](/migration/dotnet/)
+- [Changelog](/reference/changelog/)

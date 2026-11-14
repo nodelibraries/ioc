@@ -1,0 +1,116 @@
+---
+title: Scopes
+description: Create a scope per request or job, dispose it with await using, and understand how scopes relate to the root provider.
+sidebar:
+  order: 5
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+A **scope** is a child of the root provider with its own cache of [scoped](/concepts/lifetimes/) services.
+Singletons come from the root and are shared; scoped services are created once per scope; transients are created per
+resolution and owned by the scope that resolved them. It is .NET's `IServiceScope`.
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+class RequestContext {
+  readonly id = crypto.randomUUID();
+}
+
+const provider = new ServiceCollection().addScoped(RequestContext).buildServiceProvider({ validateScopes: true });
+
+await using scope = provider.createScope();
+const ctx = await scope.getRequiredService(RequestContext);
+```
+
+A scope is a `ServiceProvider` too: it has the same `getService`, `getRequiredService`, `getServices` and keyed methods.
+
+## One scope per unit of work
+
+Create a scope where a unit of work starts and dispose it where it ends:
+
+- **HTTP servers:** one scope per request, created in a middleware. See [Express](/guides/express/).
+- **Queue consumers:** one scope per message.
+- **CLI tools and cron jobs:** one scope per command or run.
+- **Tests:** one scope per test, so scoped state never leaks between tests.
+
+```ts twoslash
+import { ServiceCollection, type ServiceProvider } from '@nodelibraries/ioc';
+interface Message {
+  id: string;
+}
+class OrderHandler {
+  async handle(m: Message) {}
+}
+declare const provider: ServiceProvider;
+// ---cut---
+async function onMessage(message: Message) {
+  await using scope = provider.createScope();
+  const handler = await scope.getRequiredService(OrderHandler);
+  await handler.handle(message);
+} // scoped and transient services disposed here, also when handle() throws
+```
+
+## Disposing a scope
+
+`await scope.dispose()` disposes every scoped and transient instance the scope created, in reverse creation order,
+by calling `onDestroy()`, `[Symbol.asyncDispose]()` or `[Symbol.dispose]()`. Singletons are untouched: they belong to
+the root. Details in [Lifecycle and disposal](/concepts/lifecycle/).
+
+`ServiceProvider` implements `Symbol.asyncDispose`, so `await using` calls `dispose()` for you when the block exits,
+normally or by an exception. On older setups write it out:
+
+```ts twoslash
+import { type ServiceProvider } from '@nodelibraries/ioc';
+declare const provider: ServiceProvider;
+declare function work(scope: ServiceProvider): Promise<void>;
+// ---cut---
+const scope = provider.createScope();
+try {
+  await work(scope);
+} finally {
+  await scope.dispose();
+}
+```
+
+Calling `dispose()` again, or concurrently, waits for the first disposal to finish and never rethrows its errors.
+After it, every `get*` call and `createScope()` on that scope throws `DisposedError`, and `isService` returns `false`.
+
+If a scope is disposed while one of its services is still being built (an async factory or `onInit` still running),
+that service is disposed as soon as it is finished, and the pending `get*` call rejects with `DisposedError`.
+Nothing created for a disposed scope is leaked.
+
+## Root and scopes
+
+- `createScope()` can be called on the root or on a scope. Either way the new scope hangs off the **root**: scopes don't
+  nest, and a scope created from another scope does not share its scoped instances.
+- Disposing the root disposes its singletons (and the transients resolved from the root). After that, every scope of
+  that root throws `DisposedError` too, and `isService` returns `false` on them.
+- Disposing the root does **not** dispose scoped services of scopes still open. Dispose scopes when their work ends,
+  then the root at shutdown.
+
+```ts twoslash
+import { type ServiceProvider } from '@nodelibraries/ioc';
+declare const provider: ServiceProvider;
+declare const server: { close(): Promise<void> };
+declare const process: { once(event: string, fn: () => void): void };
+// ---cut---
+// Graceful shutdown: stop taking work, let open scopes finish, then dispose singletons.
+process.once('SIGTERM', async () => {
+  await server.close();
+  await provider.dispose();
+});
+```
+
+## Registrations are fixed at build time
+
+`buildServiceProvider()` copies the registrations. Adding, removing or replacing services in the
+`ServiceCollection` afterwards has no effect on that provider or its scopes. To change wiring, change the collection
+and build a new provider, which is what [test setups](/guides/testing/) do.
+
+<Aside type="caution">
+Without `validateScopes`, resolving a scoped service from the root works and caches the instance on the root,
+where it lives until the app stops. Turn on `validateScopes` in development so that mistake throws a `ScopeError`.
+See [Validation](/concepts/validation/).
+</Aside>

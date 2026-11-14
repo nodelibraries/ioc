@@ -1,0 +1,98 @@
+---
+title: Coming from .NET
+description: How Microsoft.Extensions.DependencyInjection maps to @nodelibraries/ioc, and the differences that come from TypeScript and async resolution.
+sidebar:
+  order: 2
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+`@nodelibraries/ioc` is modeled on `Microsoft.Extensions.DependencyInjection`: a `ServiceCollection` you register into, a
+`ServiceProvider` you resolve from, scopes, the same three lifetimes and the same validation options. If you know
+ASP.NET Core's container, you know this one; the differences come from JavaScript having no runtime types and from
+resolution being async.
+
+## API mapping
+
+| .NET | @nodelibraries/ioc |
+| --- | --- |
+| `services.AddSingleton<IFoo, Foo>()` | `services.addSingleton(IFoo, Foo, [deps])` |
+| `services.AddScoped<Foo>()` | `services.addScoped(Foo, [deps])` |
+| `services.AddTransient<IFoo>(sp => new Foo(...))` | `services.addTransient(IFoo, (provider) => new Foo(...))` |
+| `services.AddSingleton<IFoo>(instance)` | `services.addValue(IFoo, instance)` |
+| `services.TryAddSingleton<IFoo, Foo>()` | `services.tryAddSingleton(IFoo, Foo, [deps])` |
+| `services.AddKeyedSingleton<IFoo, Foo>("key")` | `services.addKeyedSingleton(IFoo, Foo, 'key', [deps])` |
+| `services.Replace(ServiceDescriptor...)` | `services.replace(IFoo, Foo, [deps])` (keeps the lifetime) |
+| `services.RemoveAll<IFoo>()` | `services.remove(IFoo)` |
+| `services.Any(d => d.ServiceType == typeof(IFoo))` | `services.has(IFoo)` |
+| `services.BuildServiceProvider(new ServiceProviderOptions { ValidateScopes = true, ValidateOnBuild = true })` | `services.buildServiceProvider({ validateScopes: true, validateOnBuild: true })` |
+| `sp.GetService<IFoo>()` | `await provider.getService(IFoo)` |
+| `sp.GetRequiredService<IFoo>()` | `await provider.getRequiredService(IFoo)` |
+| `sp.GetServices<IFoo>()` / `IEnumerable<IFoo>` | `await provider.getServices(IFoo)` |
+| `sp.GetKeyedService<IFoo>("key")` | `await provider.getKeyedService(IFoo, 'key')` |
+| `sp.GetRequiredKeyedService<IFoo>("key")` | `await provider.getRequiredKeyedService(IFoo, 'key')` |
+| `IServiceProviderIsService.IsService(typeof(IFoo))` | `provider.isService(IFoo)` |
+| `sp.CreateScope()` / `IServiceScope` | `provider.createScope()` (the scope is a `ServiceProvider`) |
+| `using var scope = sp.CreateAsyncScope()` | `await using scope = provider.createScope()` |
+| `IDisposable` / `IAsyncDisposable` | `[Symbol.dispose]` / `[Symbol.asyncDispose]`, or `onDestroy()` |
+| `InvalidOperationException` (no service, scope violations) | `ServiceNotFoundError`, `ScopeError`, `CircularDependencyError` |
+| `AggregateException` from `ValidateOnBuild` | `ValidationError` with `errors: string[]` |
+
+## Differences
+
+**Dependencies are listed, not reflected.** TypeScript types are erased at runtime, so the container can't read
+constructor parameter types the way .NET does. You pass one token per parameter, in order. In return the compiler checks
+the list against the constructor, with no decorators or `reflect-metadata`:
+
+```ts twoslash
+// @errors: 2769
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+interface Clock {
+  now(): Date;
+}
+interface Logger {
+  log(msg: string): void;
+}
+// ---cut---
+const Clock = createToken<Clock>('Clock');
+const Logger = createToken<Logger>('Logger');
+
+class Reports {
+  constructor(readonly clock: Clock, readonly logger: Logger) {}
+}
+
+const services = new ServiceCollection();
+services.addScoped(Reports, [Logger, Clock]); // wrong order: compile error
+```
+
+See [Dependencies](/concepts/dependencies/).
+
+**Interfaces need tokens.** `IFoo` doesn't exist at runtime. Use `createToken<IFoo>('IFoo')`, a class (abstract classes
+work), a string or a symbol. See [Tokens](/concepts/tokens/).
+
+**Resolution is async.** Every `get*` method returns a `Promise`, because factories and `onInit` may be async. Resolve
+at the edges (a request handler, `main`) and pass instances down through constructors, as in .NET.
+
+**Circular dependencies work.** .NET throws on a cycle. Here, `A → B → A` resolves for every lifetime: `B` gets a proxy
+of `A` that becomes usable once `A`'s constructor returns. Using the partner *inside* a constructor still throws a
+`CircularDependencyError`. See [Circular dependencies](/concepts/circular-dependencies/).
+
+**No open generics.** There is no `AddSingleton(typeof(IRepository<>), typeof(Repository<>))`. Register each closed
+type with its own token, or use a factory.
+
+**No constructor selection.** One constructor per class, one dependency list per registration. Optional dependencies
+can be resolved in a factory with `getService`, which returns `undefined` when nothing is registered.
+
+**Transients from the root are disposed with the root.** As in .NET, a disposable transient resolved from the root
+provider is kept until the root is disposed. Resolve disposable transients from a scope.
+
+<Aside type="tip">
+`validateScopes` is off by default here, while ASP.NET Core turns it on in Development. Turn it on yourself in
+development and tests: it is the check that catches a scoped service captured by a singleton.
+</Aside>
+
+## Related
+
+- [Registration](/concepts/registration/)
+- [Lifetimes](/concepts/lifetimes/)
+- [Migrating from @nodelibraries/ioc](/migration/v1-to-v2/)

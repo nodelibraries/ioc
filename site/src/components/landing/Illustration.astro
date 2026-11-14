@@ -1,0 +1,186 @@
+---
+/** Small static diagrams for the landing bento cards. Lifetime colours only, no decoration. */
+interface Props {
+  kind: 'typed' | 'lifetimes' | 'cycles' | 'validation' | 'disposal' | 'concurrency';
+}
+const { kind } = Astro.props;
+---
+
+<svg class="io-ill" viewBox="0 0 440 150" role="img" aria-hidden="true">
+  {kind === 'typed' && (
+    <g>
+      <rect x="20" y="30" width="170" height="90" rx="10" class="box" />
+      <text x="36" y="56" class="mono">class UserRepository</text>
+      <text x="36" y="82" class="mono faint">constructor(</text>
+      <text x="52" y="102" class="mono">logger: <tspan class="ok">Logger</tspan></text>
+      <path d="M190 75 H250" class="wire ok-stroke" marker-end="url(#ill-a)" />
+      <rect x="250" y="30" width="170" height="90" rx="10" class="box" />
+      <text x="266" y="56" class="mono">addScoped(</text>
+      <text x="282" y="82" class="mono">UserRepository,</text>
+      <text x="282" y="102" class="mono">[<tspan class="ok">Logger</tspan>])</text>
+      <text x="220" y="140" text-anchor="middle" class="tiny faint">checked at compile time</text>
+    </g>
+  )}
+  {kind === 'lifetimes' && (
+    <g>
+      <text x="22" y="146" class="tiny faint">scope A</text>
+      <text x="232" y="146" class="tiny faint">scope B</text>
+      <rect x="14" y="36" width="196" height="96" rx="12" class="frame" />
+      <rect x="224" y="36" width="196" height="96" rx="12" class="frame" />
+      <circle cx="217" cy="18" r="9" class="dot si" />
+      <text x="232" y="22" class="tiny">singleton: one</text>
+      <circle cx="60" cy="70" r="11" class="dot sc" />
+      <circle cx="270" cy="70" r="11" class="dot sc" />
+      {[110, 140, 170].map((x) => <circle cx={x} cy="70" r="7" class="dot tr" />)}
+      {[320, 350, 380].map((x) => <circle cx={x} cy="70" r="7" class="dot tr" />)}
+      <path d="M60 81 V100 M270 81 V100" class="wire" />
+      <text x="40" y="118" class="tiny">scoped: one per scope</text>
+      <text x="110" y="100" class="tiny faint">transient: new</text>
+      <path d="M217 27 C200 50, 100 40, 60 59 M217 27 C230 50, 250 45, 270 59" class="wire si-stroke" />
+    </g>
+  )}
+  {kind === 'cycles' && (
+    <g>
+      <rect x="40" y="50" width="120" height="44" rx="10" class="box" />
+      <text x="100" y="77" text-anchor="middle" class="mono">Orders</text>
+      <rect x="280" y="50" width="120" height="44" rx="10" class="box" />
+      <text x="340" y="77" text-anchor="middle" class="mono">Payments</text>
+      <path d="M160 62 C210 30, 230 30, 280 62" class="wire cyc" marker-end="url(#ill-c)" />
+      <path d="M280 84 C230 116, 210 116, 160 84" class="wire cyc" marker-end="url(#ill-c)" />
+      <text x="220" y="26" text-anchor="middle" class="tiny faint">proxy</text>
+      <text x="220" y="138" text-anchor="middle" class="tiny">a.b.a === a</text>
+    </g>
+  )}
+  {kind === 'validation' && (
+    <g>
+      <rect x="20" y="52" width="110" height="40" rx="10" class="box si-stroke" />
+      <text x="75" y="77" text-anchor="middle" class="mono">Cache</text>
+      <rect x="170" y="52" width="110" height="40" rx="10" class="box sc-stroke" />
+      <text x="225" y="77" text-anchor="middle" class="mono">Session</text>
+      <path d="M130 72 H170" class="wire warn" />
+      <rect x="320" y="52" width="100" height="40" rx="10" class="box dashed" />
+      <text x="370" y="77" text-anchor="middle" class="mono faint">Db ?</text>
+      <path d="M280 72 H320" class="wire faint-stroke" />
+      <text x="20" y="124" class="tiny warn-text">captive scoped</text>
+      <text x="320" y="124" class="tiny faint">not registered</text>
+      <text x="20" y="36" class="tiny faint">validateOnBuild: before the first request</text>
+    </g>
+  )}
+  {kind === 'disposal' && (
+    <g>
+      {['Db', 'UnitOfWork', 'Handler'].map((n, i) => (
+        <g>
+          <rect x={20 + i * 140} y="40" width="120" height="36" rx="9" class="box" />
+          <text x={80 + i * 140} y="63" text-anchor="middle" class="mono">{n}</text>
+          <text x={80 + i * 140} y="100" text-anchor="middle" class="tiny faint">created {i + 1}</text>
+          <text x={80 + i * 140} y="124" text-anchor="middle" class="tiny warn-text">disposed {3 - i}</text>
+        </g>
+      ))}
+      <path d="M400 140 H40" class="wire warn" marker-end="url(#ill-w)" />
+    </g>
+  )}
+  {kind === 'concurrency' && (
+    <g>
+      {[30, 62, 94, 126].map((y) => <path d={`M20 ${y} C140 ${y}, 160 75, 250 75`} class="wire" />)}
+      <circle cx="270" cy="75" r="20" class="dot si" />
+      <text x="300" y="70" class="mono">Promise.all × 4</text>
+      <text x="300" y="92" class="tiny faint">one singleton built</text>
+    </g>
+  )}
+  <defs>
+    <marker id="ill-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 10 5 0 10z" class="ok-fill" /></marker>
+    <marker id="ill-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 10 5 0 10z" class="cyc-fill" /></marker>
+    <marker id="ill-w" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0 10 5 0 10z" class="warn-fill" /></marker>
+  </defs>
+</svg>
+
+<style>
+  .io-ill {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .box {
+    fill: var(--io-surface-2);
+    stroke: var(--io-hairline-strong);
+  }
+  .frame {
+    fill: none;
+    stroke: var(--io-hairline-strong);
+    stroke-dasharray: 4 4;
+  }
+  .dashed {
+    stroke-dasharray: 4 3;
+    fill: none;
+  }
+  .mono {
+    font-family: var(--io-mono);
+    font-size: 12px;
+    fill: var(--sl-color-white);
+  }
+  .tiny {
+    font-family: var(--io-mono);
+    font-size: 10.5px;
+    fill: var(--io-text-muted);
+  }
+  .faint {
+    fill: var(--io-text-faint);
+  }
+  .ok {
+    fill: var(--io-accent);
+  }
+  .wire {
+    fill: none;
+    stroke: var(--io-hairline-strong);
+    stroke-width: 1.5;
+  }
+  .ok-stroke {
+    stroke: var(--io-accent);
+  }
+  .ok-fill {
+    fill: var(--io-accent);
+  }
+  .si-stroke {
+    stroke: var(--io-singleton);
+  }
+  .sc-stroke {
+    stroke: var(--io-scoped);
+  }
+  .faint-stroke {
+    stroke: var(--io-text-faint);
+    stroke-dasharray: 3 3;
+  }
+  .cyc {
+    stroke: var(--io-accent);
+    stroke-dasharray: 6 4;
+    stroke-width: 2;
+  }
+  .cyc-fill {
+    fill: var(--io-accent);
+  }
+  .warn {
+    stroke: var(--io-amber);
+    stroke-width: 2;
+  }
+  .warn-fill {
+    fill: var(--io-amber);
+  }
+  .warn-text {
+    fill: var(--io-amber);
+  }
+  .dot.si {
+    fill: color-mix(in oklab, var(--io-singleton) 30%, transparent);
+    stroke: var(--io-singleton);
+  }
+  .dot.sc {
+    fill: color-mix(in oklab, var(--io-scoped) 30%, transparent);
+    stroke: var(--io-scoped);
+  }
+  .dot.tr {
+    fill: color-mix(in oklab, var(--io-transient) 30%, transparent);
+    stroke: var(--io-transient);
+  }
+  :global([data-theme='light']) .warn-text {
+    fill: #b45309;
+  }
+</style>

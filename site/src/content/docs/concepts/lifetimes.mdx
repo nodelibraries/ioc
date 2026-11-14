@@ -1,0 +1,135 @@
+---
+title: Service lifetimes
+description: Singleton, scoped and transient, how long each instance lives, who shares it, and the rules that keep them from mixing badly.
+sidebar:
+  order: 4
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import LifetimeSimulator from '../../../components/LifetimeSimulator.tsx';
+
+The lifetime decides how often the container creates a service and who gets the same instance.
+
+| Lifetime | Register with | Instances | Owned and disposed by | .NET |
+|---|---|---|---|---|
+| Singleton | `addSingleton` | One per root provider, shared by every scope | Root provider | `AddSingleton` |
+| Scoped | `addScoped` | One per scope | The scope | `AddScoped` |
+| Transient | `addTransient` | A new one on every resolution | The provider or scope that resolved it | `AddTransient` |
+
+## Try it
+
+The widget below runs the real library. Create scopes, resolve each lifetime and watch which instances are shared:
+same number, same object. Dispose a scope to see the order in which `onDestroy` runs.
+
+<LifetimeSimulator client:visible />
+
+## Singleton
+
+One instance for the whole application. Every scope gets the same object. Use it for stateless services and for
+expensive shared resources: connection pools, HTTP clients, caches, configuration.
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+class ConnectionPool {}
+
+const provider = new ServiceCollection().addSingleton(ConnectionPool).buildServiceProvider();
+
+const a = await provider.createScope().getRequiredService(ConnectionPool);
+const b = await provider.createScope().getRequiredService(ConnectionPool);
+console.log(a === b); // true
+```
+
+A singleton must be safe to share: no per-request or per-user state.
+
+## Scoped
+
+One instance per [scope](/concepts/scopes/). In a server, one scope per request means one instance per request:
+the right lifetime for a unit of work, a database transaction, the current user or a request ID.
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+class UnitOfWork {}
+
+const provider = new ServiceCollection().addScoped(UnitOfWork).buildServiceProvider();
+
+const scope1 = provider.createScope();
+const scope2 = provider.createScope();
+console.log((await scope1.getRequiredService(UnitOfWork)) === (await scope1.getRequiredService(UnitOfWork))); // true
+console.log((await scope1.getRequiredService(UnitOfWork)) === (await scope2.getRequiredService(UnitOfWork))); // false
+```
+
+Resolving a scoped service from the root provider works by default and behaves like a singleton owned by the root.
+That is almost always a mistake, and `validateScopes: true` turns it into a `ScopeError`. See [Validation](/concepts/validation/).
+
+## Transient
+
+A new instance every time it is resolved, including once per class that depends on it. Use it for lightweight,
+stateful helpers that must not be shared: builders, parsers, per-operation state.
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+class QueryBuilder {}
+
+const provider = new ServiceCollection().addTransient(QueryBuilder).buildServiceProvider();
+console.log((await provider.getRequiredService(QueryBuilder)) === (await provider.getRequiredService(QueryBuilder))); // false
+```
+
+## Rules worth knowing
+
+**A service lives at most as long as what holds it.** A transient injected into a singleton is created once, when the
+singleton is, and then lives as long as the singleton. That is usually fine. A *scoped* service injected into a
+singleton is a bug, a **captive dependency**: the singleton keeps the first scope's instance forever.
+`validateScopes` catches it.
+
+| Consumer ↓ / dependency → | Singleton | Scoped | Transient |
+|---|---|---|---|
+| Singleton | ok | captive (`ScopeError` with `validateScopes`) | ok, lives as long as the singleton |
+| Scoped | ok | ok, same scope | ok |
+| Transient | ok | ok, from the resolving scope | ok |
+
+**Each registration has its own instance.** Two registrations of the same token, or of the same class under two tokens,
+are two services. With `getServices`, every implementation gets its own singleton (or its own scoped instance per scope).
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+// ---cut---
+class Handler {}
+const Handlers = createToken<Handler>('Handlers');
+
+const provider = new ServiceCollection()
+  .addSingleton(Handlers, Handler)
+  .addSingleton(Handlers, Handler)
+  .buildServiceProvider();
+
+const [first, second] = await provider.getServices(Handlers);
+console.log(first === second); // false: two registrations, two singletons
+```
+
+**Concurrent resolutions share one instance.** If several resolutions of a singleton (or of a scoped service in the
+same scope) are in flight at once, for example in `Promise.all` while an async factory or `onInit` is still running,
+they all wait for the same instance. The service is built once. Transients are always distinct.
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+let created = 0;
+
+const provider = new ServiceCollection()
+  .addSingleton('db', async () => {
+    created++;
+    await new Promise((r) => setTimeout(r, 50)); // slow connect
+    return { query: (sql: string) => [] };
+  })
+  .buildServiceProvider();
+
+await Promise.all([provider.getService('db'), provider.getService('db'), provider.getService('db')]);
+console.log(created); // 1
+```
+
+<Aside type="tip">
+Not sure? Start with transient for cheap, stateless classes, singleton for anything that holds a pool or a cache,
+and scoped only for things that must be per request.
+</Aside>

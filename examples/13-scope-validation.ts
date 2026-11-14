@@ -187,7 +187,7 @@ async function main() {
   console.log('  - Do not inject scoped service into singleton');
 }
 
-main().catch(console.error);
+await main();
 
 /*
 Expected Console Output:

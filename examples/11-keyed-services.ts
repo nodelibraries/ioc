@@ -61,7 +61,7 @@ async function main() {
   services.addKeyedSingleton<ICache>(ICacheToken, BigCache, 'big');
   services.addKeyedSingleton<ICache>(ICacheToken, SmallCache, 'small');
 
-  const provider = services.buildServiceProvider();
+  let provider = services.buildServiceProvider();
 
   // Get service by key
   const bigCache = await provider.getKeyedService<ICache>(ICacheToken, 'big');
@@ -113,6 +113,8 @@ async function main() {
 
   services.addScoped<IUserService>(IUserServiceToken, userServiceFactory);
 
+  // Registrations are snapshotted at build time: rebuild after adding services.
+  provider = services.buildServiceProvider();
   const scope = provider.createScope();
   const userService = await scope.getRequiredService<IUserService>(IUserServiceToken);
   const user = await userService.getUser(1);
@@ -197,7 +199,7 @@ async function main() {
   console.log('\n✅ Keyed services are working!');
 }
 
-main().catch(console.error);
+await main();
 
 /*
 Expected Console Output:

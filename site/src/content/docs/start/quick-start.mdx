@@ -1,0 +1,180 @@
+---
+title: Quick start
+description: Five steps from two plain classes to a validated, request-scoped container that cleans up after itself.
+sidebar:
+  order: 3
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+
+Five steps, each building on the last. Every snippet on this page is type-checked against the library.
+
+## 1. Write plain classes
+
+Services are ordinary classes that take their dependencies in the constructor. Nothing about them mentions the container.
+
+```ts twoslash title="services.ts"
+export interface Logger {
+  log(message: string): void;
+}
+
+export class ConsoleLogger implements Logger {
+  log(message: string) {
+    console.log(`[app] ${message}`);
+  }
+}
+
+export class UserRepository {
+  constructor(private readonly logger: Logger) {}
+  async findAll() {
+    this.logger.log('SELECT * FROM users');
+    return [{ id: 1, name: 'Ada' }];
+  }
+}
+
+export class UserService {
+  constructor(
+    private readonly repo: UserRepository,
+    private readonly logger: Logger,
+  ) {}
+  async names() {
+    this.logger.log('UserService.names');
+    return (await this.repo.findAll()).map((u) => u.name);
+  }
+}
+```
+
+## 2. Give interfaces a token
+
+Interfaces don't exist at runtime, so the container can't use `Logger` itself as a key. A typed token stands in for it.
+Classes are their own tokens.
+
+```ts twoslash title="tokens.ts"
+interface Logger {
+  log(message: string): void;
+}
+// ---cut---
+import { createToken } from '@nodelibraries/ioc';
+
+export const Logger = createToken<Logger>('Logger');
+```
+
+A value and a type may share a name in TypeScript, so `Logger` can be both the interface and its token.
+More in [Tokens](/concepts/tokens/).
+
+## 3. Register and resolve
+
+```ts twoslash title="container.ts"
+import { createToken } from '@nodelibraries/ioc';
+interface Logger {
+  log(message: string): void;
+}
+const Logger = createToken<Logger>('Logger');
+class ConsoleLogger implements Logger {
+  log(message: string) {}
+}
+class UserRepository {
+  constructor(private readonly logger: Logger) {}
+  async findAll() {
+    return [{ id: 1, name: 'Ada' }];
+  }
+}
+class UserService {
+  constructor(private readonly repo: UserRepository, private readonly logger: Logger) {}
+  async names() {
+    return (await this.repo.findAll()).map((u) => u.name);
+  }
+}
+// ---cut---
+import { ServiceCollection } from '@nodelibraries/ioc';
+
+const services = new ServiceCollection()
+  .addSingleton(Logger, ConsoleLogger) // token, implementation
+  .addSingleton(UserRepository, [Logger]) // class as its own token, [deps]
+  .addTransient(UserService, [UserRepository, Logger]);
+
+const provider = services.buildServiceProvider();
+
+const users = await provider.getRequiredService(UserService);
+//    ^?
+console.log(await users.names()); // ['Ada']
+```
+
+The dependency array lists one token per constructor parameter, in order. Put the `Logger` token first and the
+compiler rejects it, because a `Logger` is not a `UserRepository`. See [Dependencies](/concepts/dependencies/) for
+what the check covers.
+
+Resolution is always `async`: factories may be async and `onInit` hooks may await, so every `get*` method returns a promise.
+
+## 4. Scope per request
+
+A **scoped** service lives once per scope. In a server, one scope per request gives every request its own unit of
+work (a transaction, a request ID) while singletons stay shared.
+
+```ts twoslash title="server.ts"
+import { ServiceCollection } from '@nodelibraries/ioc';
+declare function handle(ctx: RequestContext): Promise<void>;
+// ---cut---
+class RequestContext {
+  readonly id = crypto.randomUUID();
+}
+
+const services = new ServiceCollection().addScoped(RequestContext);
+const provider = services.buildServiceProvider({ validateScopes: true });
+
+async function onRequest() {
+  await using scope = provider.createScope();
+  const ctx = await scope.getRequiredService(RequestContext);
+  await handle(ctx); // every resolution in this scope sees the same ctx
+} // scope disposed here, even if handle() throws
+```
+
+`await using` disposes the scope at the end of the block. Without it, call `await scope.dispose()` in a `finally`.
+Read [Lifetimes](/concepts/lifetimes/) and [Scopes](/concepts/scopes/) for the rules.
+
+## 5. Validate, clean up, swap for tests
+
+Turn on validation in development and tests. It catches missing registrations and lifetime mistakes when the provider
+is built, not when a rare code path first runs.
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+class Database {
+  async query(sql: string): Promise<{ id: number }[]> {
+    return [];
+  }
+  async onDestroy() {
+    console.log('pool closed'); // runs on provider.dispose()
+  }
+}
+
+class FakeDatabase extends Database {
+  override async query() {
+    return [{ id: 1 }];
+  }
+}
+
+const services = new ServiceCollection().addSingleton(Database);
+
+// In a test: replace one registration, keep the rest.
+services.replace(Database, FakeDatabase);
+
+const provider = services.buildServiceProvider({ validateScopes: true, validateOnBuild: true });
+const db = await provider.getRequiredService(Database);
+await db.query('SELECT 1'); // [{ id: 1 }]
+
+await provider.dispose(); // logs "pool closed"
+```
+
+<Aside type="tip">
+`validateOnBuild` checks every registration up front and throws one `ValidationError` listing every problem.
+Combined with `validateScopes`, it also reports singletons that capture scoped services. See [Validation](/concepts/validation/).
+</Aside>
+
+## Where next
+
+- [Registration](/concepts/registration/): every way to register a service.
+- [Lifecycle and disposal](/concepts/lifecycle/): `onInit`, `onDestroy`, `Symbol.dispose`.
+- [Testing](/guides/testing/): patterns for swapping dependencies.
+- [Playground](/playground/): edit and run these snippets in your browser.

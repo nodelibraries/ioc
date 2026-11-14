@@ -1,0 +1,96 @@
+---
+title: Cheat sheet
+description: Every public method of ServiceCollection and ServiceProvider, and every export of @nodelibraries/ioc, on one page.
+sidebar:
+  order: 1
+---
+
+The whole API on one page. Full signatures and doc comments are in the [API reference](/api/overview/).
+
+## ServiceCollection
+
+Registration. Each `add*` / `tryAdd*` / `addKeyed*` method returns the collection, so calls chain.
+
+| Method | Forms | Notes |
+| --- | --- | --- |
+| `addSingleton` | `(Class)`, `(Class, [deps])`, `(token, Impl)`, `(token, Impl, [deps])`, `(token, factory)` | One instance for the root and every scope |
+| `addScoped` | same forms | One instance per scope |
+| `addTransient` | same forms | New instance on every resolution |
+| `tryAddSingleton` / `tryAddScoped` / `tryAddTransient` | same forms | No-op if `token` has a plain registration |
+| `addKeyedSingleton` / `addKeyedScoped` / `addKeyedTransient` | `(token, Impl, key, [deps]?)`, `(token, factory, key)` | Resolved only with `getKeyedService(token, key)` |
+| `addValue` | `(token, value)` | Any value, `null` and `undefined` included; never disposed |
+| `replace` | `(token, Impl, [deps]?)`, `(token, factory)` | Replaces plain registrations, keeps the last lifetime (singleton if none) |
+| `remove` | `(token)` | Removes plain and keyed registrations |
+| `has` | `(token, key?)` | `boolean` |
+| `buildServiceProvider` | `({ validateScopes?, validateOnBuild? })` | Copies the registrations; may throw `ValidationError` |
+
+Diagnostics (read registrations only, never construct):
+
+| Method | Returns |
+| --- | --- |
+| `getDependencyTree(token)` | `DependencyTreeNode` |
+| `visualizeDependencyTree(token)` | `string` |
+| `getCircularDependencies()` | `CircularDependency[]` |
+| `visualizeCircularDependencies()` | `string` |
+
+Rules: a class with N constructor parameters needs at least N dependency tokens (`RegistrationError` otherwise). Only
+`class` syntax counts as an implementation; any other function is a factory `(provider, key?) => T | Promise<T>`.
+Dependency tokens (typed tokens and classes) are type-checked against the constructor when `T` is inferred (see [Dependencies](/concepts/dependencies/)).
+
+## ServiceProvider
+
+The root provider and every scope are `ServiceProvider`s.
+
+| Method | Returns | When nothing is registered |
+| --- | --- | --- |
+| `getService(token)` | `Promise<T \| undefined>` | `undefined` |
+| `getRequiredService(token)` | `Promise<T>` | throws `ServiceNotFoundError` |
+| `getServices(token)` | `Promise<T[]>`, registration order | `[]` |
+| `getKeyedService(token, key)` | `Promise<T \| undefined>` | `undefined` |
+| `getRequiredKeyedService(token, key)` | `Promise<T>` | throws `ServiceNotFoundError` |
+| `isService(token, key?)` | `boolean` | `false` (also once disposed) |
+| `createScope()` | `ServiceProvider` | |
+| `dispose()` | `Promise<void>` | Later or concurrent calls wait for the first and never rethrow |
+| `[Symbol.asyncDispose]()` | `Promise<void>` | For `await using` |
+
+With several plain registrations, `getService` and dependency injection use the last one. Any method except
+`isService` and `dispose` throws `DisposedError` after the provider (or its root) is disposed.
+
+## Lifetimes
+
+| | Singleton | Scoped | Transient |
+| --- | --- | --- | --- |
+| Instances | One per root provider | One per scope | One per resolution |
+| Cached by | Root | Scope | Nobody |
+| Disposed by | Root | Scope | The provider or scope that resolved it |
+| From the root with `validateScopes` | Yes | `ScopeError` | Yes |
+
+## Disposal
+
+`dispose()` runs in reverse creation order and calls `onDestroy()`, else `[Symbol.asyncDispose]()`, else
+`[Symbol.dispose]()`. Every instance is disposed even if some throw; then the error (or an `AggregateError`) is rethrown.
+Values from `addValue` are never disposed. `onInit()` runs after construction for class registrations only.
+
+## Errors
+
+All extend `IocError`.
+
+| Class | Thrown when | Fields |
+| --- | --- | --- |
+| `ServiceNotFoundError` | A required service or a dependency has no registration | `token`, `key`, `path` |
+| `CircularDependencyError` | A cycle partner is used before its constructor finished | `path` |
+| `ScopeError` | `validateScopes`: scoped from the root, or captured by a singleton | |
+| `RegistrationError` | Fewer dependency tokens than constructor parameters; token-only registration of a non-class | |
+| `ValidationError` | `validateOnBuild` found problems | `errors: string[]` |
+| `DisposedError` | The provider or scope was used after `dispose()` | |
+
+## Exports
+
+| Export | Kind |
+| --- | --- |
+| `ServiceCollection`, `ServiceProvider` | classes |
+| `createToken`, `tokenName` | functions |
+| `InjectionToken` | class |
+| `ServiceLifetime` | const object + type (`'SINGLETON'`, `'SCOPED'`, `'TRANSIENT'`) |
+| `IocError`, `ServiceNotFoundError`, `CircularDependencyError`, `ScopeError`, `RegistrationError`, `ValidationError`, `DisposedError` | error classes |
+| `Token`, `ServiceKey`, `Newable`, `AbstractNewable`, `Dependencies`, `ServiceFactory`, `ServiceDescriptor`, `LifecycleHooks`, `DependencyTreeNode`, `CircularDependency`, `BuildOptions` | types |

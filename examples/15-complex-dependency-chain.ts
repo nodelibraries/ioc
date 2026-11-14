@@ -250,7 +250,7 @@ async function main() {
   console.log('\n✅ Complex dependency chain is working correctly!');
 }
 
-main().catch(console.error);
+await main();
 
 /*
 Expected Console Output:

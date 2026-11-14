@@ -1,0 +1,146 @@
+---
+title: Service management
+description: tryAdd for defaults, remove and replace for overrides, has and isService for checks, and why a built provider never changes.
+sidebar:
+  order: 5
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+A `ServiceCollection` is a mutable list of registrations until you call `buildServiceProvider()`. These methods let
+libraries register defaults that applications can override, and let tests swap pieces out.
+
+| Method | Does |
+| --- | --- |
+| `tryAddSingleton` / `tryAddScoped` / `tryAddTransient` | Register only if the token has no plain registration yet |
+| `remove(token)` | Remove every registration of the token, keyed ones included |
+| `replace(token, impl, deps?)` | Swap the plain registrations for one new one, keeping the lifetime |
+| `has(token, key?)` | Is it registered in this collection? |
+| `provider.isService(token, key?)` | Is it registered in this provider? (`false` once disposed) |
+
+## tryAdd: defaults that yield
+
+`tryAdd*` takes the same forms as `add*` and does nothing when the token already has a plain registration. Use it in
+code that sets up defaults, so whoever registers first wins:
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+
+interface Logger {
+  log(msg: string): void;
+}
+const Logger = createToken<Logger>('Logger');
+class ConsoleLogger implements Logger {
+  log(msg: string) {
+    console.log(msg);
+  }
+}
+class JsonLogger implements Logger {
+  log(msg: string) {
+    console.log(JSON.stringify({ msg }));
+  }
+}
+
+// A library's setup function: only fills gaps.
+function addMyLibrary(services: ServiceCollection) {
+  services.tryAddSingleton(Logger, ConsoleLogger);
+  return services;
+}
+
+const services = new ServiceCollection();
+services.addSingleton(Logger, JsonLogger); // the app's choice
+addMyLibrary(services); // keeps JsonLogger
+```
+
+Compare with `add*`, which appends: the last registration would win for `getService`, and `getServices` would return both.
+Keyed registrations don't count: `tryAddSingleton(Logger, ...)` still registers when only keyed `Logger`s exist.
+
+## replace: override and keep the lifetime
+
+`replace` drops the plain registrations of a token and adds one new registration with the **lifetime of the last one**
+(singleton if there was none). Dependencies are type-checked like `add*`:
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+class Clock {
+  now() {
+    return new Date();
+  }
+}
+// ---cut---
+class FixedClock extends Clock {
+  override now() {
+    return new Date('2026-01-01T00:00:00Z');
+  }
+}
+
+const services = new ServiceCollection();
+services.addScoped(Clock);
+services.replace(Clock, FixedClock); // still scoped
+services.replace(Clock, () => new FixedClock()); // a factory works too
+```
+
+Keyed registrations of the token are left alone. To replace a keyed one, register the same token and key again.
+
+## remove
+
+`remove(token)` deletes every registration of the token: all plain registrations and all keyed ones. It returns the
+collection, so calls chain. (`removeAll` from `@nodelibraries/ioc` is gone; `remove` does the same.)
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+class Cache {}
+// ---cut---
+const services = new ServiceCollection();
+services.addSingleton(Cache).addKeyedSingleton(Cache, Cache, 'eu');
+
+services.remove(Cache);
+services.has(Cache); // false
+services.has(Cache, 'eu'); // false
+```
+
+## has and isService
+
+`services.has(token)` checks plain registrations, `services.has(token, key)` a keyed one. On a built provider,
+`provider.isService(token, key?)` answers the same question without resolving anything, and returns `false` after the
+provider (or scope) is disposed.
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+const Metrics = createToken<{ inc(name: string): void }>('Metrics');
+const services = new ServiceCollection();
+const provider = services.buildServiceProvider();
+// ---cut---
+if (provider.isService(Metrics)) {
+  const metrics = await provider.getRequiredService(Metrics);
+  metrics.inc('started');
+}
+```
+
+## Built providers don't change
+
+`buildServiceProvider()` copies the registrations. Adding, removing or replacing afterwards affects the next provider you
+build, never one that already exists:
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+class Mailer {}
+// ---cut---
+const services = new ServiceCollection();
+const provider = services.buildServiceProvider();
+
+services.addSingleton(Mailer);
+provider.isService(Mailer); // false: registered after the build
+services.buildServiceProvider().isService(Mailer); // true
+```
+
+<Aside type="tip">
+That makes one collection a template: build a provider per test, per tenant or per worker from the same registrations,
+tweak the collection in between (`replace` a fake in a test), and existing providers stay as they were.
+</Aside>
+
+## Related
+
+- [Multiple implementations](/guides/multiple-implementations/)
+- [Testing](/guides/testing/)
+- [Registration](/concepts/registration/)

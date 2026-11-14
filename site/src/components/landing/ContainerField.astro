@@ -1,0 +1,124 @@
+---
+/**
+ * Hero backdrop: dependencies flowing into one container node and out to the services built from it. Pulses are
+ * coloured by lifetime (singleton, scoped, transient). Pure SVG + SMIL, deterministic layout, no JS.
+ */
+interface Props {
+  intensity?: 'hero' | 'quiet';
+}
+const { intensity = 'hero' } = Astro.props;
+
+// Deterministic PRNG so the artwork is identical on every build.
+let seed = 7;
+const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+
+const W = 1440;
+const H = 760;
+const node = { x: 720, y: 380 };
+
+const lanes = Array.from({ length: 11 }, (_, i) => {
+  const y = 90 + i * 58 + (rand() - 0.5) * 18;
+  const outY = node.y + (y - node.y) * 0.55;
+  const inPath = `M -40 ${y.toFixed(1)} C ${(260 + rand() * 120).toFixed(1)} ${y.toFixed(1)}, ${(470 + rand() * 60).toFixed(1)} ${(node.y + (y - node.y) * 0.2).toFixed(1)}, ${node.x - 36} ${node.y}`;
+  const outPath = `M ${node.x + 36} ${node.y} C ${(930 + rand() * 60).toFixed(1)} ${(node.y + (outY - node.y) * 0.3).toFixed(1)}, ${(1150 + rand() * 80).toFixed(1)} ${outY.toFixed(1)}, ${W + 40} ${outY.toFixed(1)}`;
+  return { inPath, outPath, i };
+});
+
+type Pulse = { lane: number; kind: 'ok' | 'fail' | 'probe'; dur: number; begin: number };
+// ok = transient (a new one flows out every time); fail = scoped, probe = singleton: they settle in the container (cached).
+const pulses: Pulse[] = Array.from({ length: intensity === 'hero' ? 26 : 12 }, () => {
+  const r = rand();
+  return {
+    lane: Math.floor(rand() * lanes.length),
+    kind: r < 0.68 ? 'ok' : r < 0.9 ? 'fail' : 'probe',
+    dur: 3.2 + rand() * 2.6,
+    begin: -rand() * 8,
+  };
+});
+
+const color = { ok: 'var(--io-accent)', fail: 'var(--io-scoped)', probe: 'var(--io-singleton)' };
+---
+
+<svg class:list={['io-signal', intensity]} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+  <defs>
+    <radialGradient id="io-glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="var(--io-accent)" stop-opacity="0.22"></stop>
+      <stop offset="60%" stop-color="var(--io-accent)" stop-opacity="0.04"></stop>
+      <stop offset="100%" stop-color="var(--io-accent)" stop-opacity="0"></stop>
+    </radialGradient>
+    <linearGradient id="io-fade-x" x1="0" x2="1">
+      <stop offset="0" stop-color="white" stop-opacity="0"></stop>
+      <stop offset="0.18" stop-color="white" stop-opacity="1"></stop>
+      <stop offset="0.82" stop-color="white" stop-opacity="1"></stop>
+      <stop offset="1" stop-color="white" stop-opacity="0"></stop>
+    </linearGradient>
+    <mask id="io-mask-x"><rect width={W} height={H} fill="url(#io-fade-x)"></rect></mask>
+  </defs>
+
+
+  <circle cx={node.x} cy={node.y} r="260" fill="url(#io-glow)"></circle>
+
+  <g mask="url(#io-mask-x)" fill="none" stroke-linecap="round">
+    {lanes.map((l) => (
+      <>
+        <path id={`io-in-${l.i}`} d={l.inPath} class="lane"></path>
+        <path id={`io-out-${l.i}`} d={l.outPath} class="lane out"></path>
+      </>
+    ))}
+
+    {pulses.map((p) => (
+      <g>
+        <circle r={p.kind === 'ok' ? 2.6 : 3} fill={color[p.kind]} class={`pulse ${p.kind}`}>
+          <animateMotion dur={`${p.dur}s`} begin={`${p.begin}s`} repeatCount="indefinite" keyPoints={p.kind === 'ok' ? '0;1' : '0;1'} keyTimes="0;1" calcMode="linear">
+            <mpath href={`#io-in-${p.lane}`}></mpath>
+          </animateMotion>
+          {p.kind !== 'ok' && <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur={`${p.dur}s`} begin={`${p.begin}s`} repeatCount="indefinite"></animate>}
+        </circle>
+        {p.kind === 'ok' && (
+          <circle r="2.6" fill={color.ok} class="pulse ok">
+            <animateMotion dur={`${(p.dur * 0.8).toFixed(2)}s`} begin={`${(p.begin + p.dur * 0.5).toFixed(2)}s`} repeatCount="indefinite">
+              <mpath href={`#io-out-${p.lane}`}></mpath>
+            </animateMotion>
+          </circle>
+        )}
+      </g>
+    ))}
+  </g>
+
+</svg>
+
+<style>
+  .io-signal {
+    /* Dot grid as one CSS background: ~1000 SVG circles cost seconds of main-thread render time. */
+    background: radial-gradient(circle, color-mix(in oklab, currentColor 45%, transparent) 1px, transparent 1.5px) 0 0 / 32px 32px;
+    -webkit-mask-image: radial-gradient(ellipse 60% 70% at 50% 50%, #000 0%, rgb(0 0 0 / 0.25) 70%, transparent 100%);
+    mask-image: radial-gradient(ellipse 60% 70% at 50% 50%, #000 0%, rgb(0 0 0 / 0.25) 70%, transparent 100%);
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    color: var(--io-text-faint);
+    pointer-events: none;
+  }
+  .io-signal.quiet {
+    opacity: 0.55;
+  }
+  .lane {
+    stroke: var(--io-hairline-strong);
+    stroke-width: 1;
+  }
+  .lane.out {
+    stroke: color-mix(in oklab, var(--io-accent) 22%, transparent);
+  }
+  .pulse.ok {
+    filter: drop-shadow(0 0 6px var(--io-accent));
+  }
+  .pulse.fail {
+    filter: drop-shadow(0 0 6px var(--io-scoped));
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pulse {
+      display: none;
+    }
+  }
+</style>
