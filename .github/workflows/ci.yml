@@ -17,7 +17,8 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
           cache: npm
-      - run: npm ci
+      # npm install, not ci: the lock comes from macOS and npm drops Linux-only wasm dependencies from it.
+      - run: npm install --no-audit --no-fund
       - run: npm run typecheck
       - run: npm run test:coverage
       - run: npm run test:dist
@@ -30,7 +31,8 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
+      # npm install, not ci: the lock comes from macOS and npm drops Linux-only wasm dependencies from it.
+      - run: npm install --no-audit --no-fund
       - run: npm run check:package
 
   docs:
@@ -44,7 +46,8 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             site/package-lock.json
-      - run: npm ci
+      # npm install, not ci: the lock comes from macOS and npm drops Linux-only wasm dependencies from it.
+      - run: npm install --no-audit --no-fund
       # npm install, not ci: the site lock comes from macOS and npm drops a Linux-only wasm dependency from it.
       - run: npm install --no-audit --no-fund
         working-directory: site
