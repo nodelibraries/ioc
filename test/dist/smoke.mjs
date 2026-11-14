@@ -9,9 +9,12 @@ class Greeter {
   hello() { return `${this.greeting}, ${this.#name}`; }
 }
 const provider = new ServiceCollection().addValue(Greeting, 'hello').addScoped(Greeter, [Greeting]).buildServiceProvider({ validateScopes: true, validateOnBuild: true });
-{
-  await using scope = provider.createScope();
+// Plain try/finally: `await using` syntax needs Node 24, the package supports Node 20.
+const scope = provider.createScope();
+try {
   assert.equal((await scope.getRequiredService(Greeter)).hello(), 'hello, esm');
+} finally {
+  await scope[Symbol.asyncDispose]();
 }
 const err = await provider.getRequiredService('missing').catch((e) => e);
 assert.ok(err instanceof ServiceNotFoundError && err instanceof IocError);
