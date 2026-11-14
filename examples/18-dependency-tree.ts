@@ -170,7 +170,7 @@ async function main() {
   console.log(services2.visualizeCircularDependencies());
 }
 
-main().catch(console.error);
+await main();
 
 /* Expected Output:
 

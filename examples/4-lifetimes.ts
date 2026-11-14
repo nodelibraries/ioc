@@ -107,7 +107,7 @@ async function main() {
   console.log('Same instance?', transient1 === transient2);
 }
 
-main().catch(console.error);
+await main();
 
 /*
 Expected Console Output:

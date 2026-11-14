@@ -1,0 +1,689 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+import { Code, Tabs, TabItem } from '@astrojs/starlight/components';
+import ContainerField from '../components/landing/ContainerField.astro';
+import Illustration from '../components/landing/Illustration.astro';
+import HeroDemo, { HERO_CODE } from '../components/HeroDemo.tsx';
+
+const bento = [
+  {
+    kind: 'typed',
+    tag: 'Typed',
+    title: 'A wrong dependency is a compile error, not a 3 a.m. stack trace.',
+    body: 'List one token per constructor parameter. TypeScript checks the list against the constructor, and createToken<T>() gives interfaces a typed token that resolves to T with no generic argument.',
+    href: '/concepts/dependencies/',
+    wide: true,
+    code: `const Logger = createToken<Logger>('Logger');
+
+services.addSingleton(Logger, ConsoleLogger);
+services.addScoped(UserRepository, [Logger]); // checked
+const repo = await scope.getRequiredService(UserRepository); // UserRepository`,
+  },
+  {
+    kind: 'lifetimes',
+    tag: 'Lifetimes',
+    title: 'Singleton, scoped, transient. The .NET model.',
+    body: 'One instance for the app, one per request scope, or a new one every time. Scopes support await using.',
+    href: '/concepts/lifetimes/',
+    code: `await using scope = provider.createScope();
+const uow = await scope.getRequiredService(UnitOfWork);`,
+  },
+  {
+    kind: 'cycles',
+    tag: 'Cycles',
+    title: 'Circular dependencies that just work.',
+    body: 'Any lifetime, any length. Identity holds and #private fields work. Touch a half-built partner in a constructor and you get the path, not undefined.',
+    href: '/concepts/circular-dependencies/',
+    code: `services.addSingleton(Orders, [Payments]);
+services.addSingleton(Payments, [Orders]);
+orders.payments.orders === orders; // true`,
+  },
+  {
+    kind: 'validation',
+    tag: 'Validation',
+    title: 'Mistakes fail at startup, with a path.',
+    body: 'validateOnBuild reports missing dependencies and scoped services captured by singletons before the first request.',
+    href: '/concepts/validation/',
+    code: `services.buildServiceProvider({
+  validateScopes: true,
+  validateOnBuild: true, // throws ValidationError
+});`,
+  },
+  {
+    kind: 'disposal',
+    tag: 'Disposal',
+    title: 'Clean shutdown, in the right order.',
+    body: 'onDestroy, Symbol.asyncDispose and Symbol.dispose run in reverse creation order, every one of them even if some throw.',
+    href: '/concepts/lifecycle/',
+    code: `class Db {
+  async onInit() { await this.connect(); }
+  async onDestroy() { await this.close(); }
+}`,
+  },
+  {
+    kind: 'concurrency',
+    tag: 'Concurrency',
+    wide: true,
+    title: 'Correct under Promise.all.',
+    body: 'Concurrent resolutions of a singleton or scoped service share one instance. Concurrent chains that would wait on each other are detected instead of deadlocking.',
+    href: '/concepts/lifetimes/',
+    code: `const [a, b] = await Promise.all([
+  provider.getRequiredService(Db),
+  provider.getRequiredService(Db),
+]);
+a === b; // true: built once`,
+  },
+] as const;
+
+const toolbox = [
+  {
+    title: 'Register',
+    items: [
+      ['addSingleton · addScoped · addTransient', 'Class, implementation, factory'],
+      ['tryAdd*', 'Defaults that apps can override'],
+      ['addKeyed*', 'Several variants by key'],
+      ['addValue', 'Config and constants'],
+      ['remove · replace · has', 'Manage registrations'],
+    ],
+  },
+  {
+    title: 'Resolve',
+    items: [
+      ['getRequiredService', 'Typed, throws with a path'],
+      ['getService', 'Or undefined'],
+      ['getServices', 'Every implementation'],
+      ['getRequiredKeyedService', 'By key'],
+      ['isService', 'Registered?'],
+    ],
+  },
+  {
+    title: 'Scope & lifecycle',
+    items: [
+      ['createScope', 'One per request'],
+      ['await using', 'Dispose automatically'],
+      ['onInit · onDestroy', 'Lifecycle hooks'],
+      ['Symbol.asyncDispose', 'Standard disposal'],
+      ['dispose()', 'Reverse creation order'],
+    ],
+  },
+  {
+    title: 'Diagnose',
+    items: [
+      ['validateScopes', 'Captive dependencies'],
+      ['validateOnBuild', 'Missing registrations'],
+      ['getDependencyTree', 'What builds what'],
+      ['getCircularDependencies', 'Every cycle'],
+      ['IocError + 6 subclasses', 'Typed errors'],
+    ],
+  },
+];
+
+const inCode = {
+  express: `// One scope per request, disposed when the response is done.
+app.use((req, res, next) => {
+  const scope = provider.createScope();
+  req.services = scope;
+  res.on('close', () => void scope.dispose());
+  next();
+});
+
+app.get('/users/:id', async (req, res) => {
+  const users = await req.services.getRequiredService(UserService);
+  res.json(await users.find(req.params.id));
+});`,
+  testing: `// Same wiring, fake mailer: replace keeps the lifetime.
+const services = createAppServices();
+services.replace(Mailer, FakeMailer);
+
+const provider = services.buildServiceProvider({ validateScopes: true, validateOnBuild: true });
+await using scope = provider.createScope();
+const signup = await scope.getRequiredService(SignupService);`,
+  keyed: `services.addKeyedSingleton(Storage, S3Storage, 'eu', [EuConfig]);
+services.addKeyedSingleton(Storage, S3Storage, 'us', [UsConfig]);
+services.addKeyedSingleton(Storage, (sp, key) => new MemoryStorage(String(key)), 'test');
+
+const eu = await provider.getRequiredKeyedService(Storage, 'eu');`,
+  factories: `// Async initialization: the factory may return a promise.
+services.addSingleton(Db, async (sp) => {
+  const config = await sp.getRequiredService(Config);
+  const db = new Db(config.url);
+  await db.connect();
+  return db;
+});`,
+};
+---
+
+<StarlightPage frontmatter={{ title: '@nodelibraries/ioc', description: 'A type-safe IoC container for TypeScript, modeled on .NET ServiceCollection: lifetimes, scopes, keyed services, circular dependencies, typed errors. Zero dependencies.', template: 'splash', pagefind: false }}>
+  <div class="io-landing not-content">
+    <section class="hero">
+      <ContainerField />
+      <div class="hero-inner">
+        <a class="badge" href="/start/why/"><span class="dot"></span>Zero dependencies · no decorators · ESM + CJS</a>
+        <h1>Dependency injection<br /><span>that fails before production does.</span></h1>
+        <p class="lede">
+          A type-safe IoC container for TypeScript and JavaScript, modeled on .NET's ServiceCollection. Singleton, scoped and transient lifetimes,
+          keyed services, lifecycle hooks and circular dependencies. No reflect-metadata.
+        </p>
+        <div class="actions">
+          <a class="btn primary" href="/start/quick-start/">Get started</a>
+          <a class="btn ghost" href="/playground/">Open the playground</a>
+        </div>
+        <button class="install" type="button" data-copy="npm i @nodelibraries/ioc">
+          <span class="prompt">$</span> npm i @nodelibraries/ioc <span class="copy">copy</span>
+        </button>
+      </div>
+      <div class="hero-code">
+        <Code code={HERO_CODE} lang="ts" title="app.ts" />
+        <HeroDemo client:visible />
+      </div>
+    </section>
+
+    <section class="stats" aria-label="At a glance">
+      <div><strong>0</strong><span>dependencies</span></div>
+      <div><strong>3</strong><span>lifetimes</span></div>
+      <div><strong>6</strong><span>typed errors</span></div>
+      <div><strong>Node ≥ 20</strong><span>Bun, Deno, browsers</span></div>
+      <div><strong>ESM + CJS</strong><span>typed, tree-shakeable</span></div>
+    </section>
+
+    <section class="section">
+      <p class="io-eyebrow">What it does</p>
+      <h2>Wire it once. Know it is right.</h2>
+      <div class="bento">
+        {bento.map((b) => (
+          <article class:list={['card', { wide: 'wide' in b && b.wide }]}>
+            <div class="art"><Illustration kind={b.kind} /></div>
+            <div class="card-body">
+              <span class="tag">{b.tag}</span>
+              <h3>{b.title}</h3>
+              <p>{b.body}</p>
+              <a class="more" href={b.href}>Read more <span aria-hidden="true">→</span></a>
+            </div>
+            <div class="card-code"><Code code={b.code} lang="ts" /></div>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="io-eyebrow">The toolbox</p>
+      <h2>Know .NET's ServiceCollection? You know the API.</h2>
+      <div class="toolbox">
+        {toolbox.map((group) => (
+          <div>
+            <h3>{group.title}</h3>
+            <ul>
+              {group.items.map(([api, desc]) => (
+                <li><code>{api}</code><span>{desc}</span></li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section class="section">
+      <p class="io-eyebrow">In code</p>
+      <h2>Real apps, a few lines each.</h2>
+      <div class="incode">
+        <Tabs>
+          <TabItem label="Express"><Code code={inCode.express} lang="ts" /></TabItem>
+          <TabItem label="Testing"><Code code={inCode.testing} lang="ts" /></TabItem>
+          <TabItem label="Keyed services"><Code code={inCode.keyed} lang="ts" /></TabItem>
+          <TabItem label="Async factories"><Code code={inCode.factories} lang="ts" /></TabItem>
+        </Tabs>
+      </div>
+    </section>
+
+    <section class="cta">
+      <ContainerField intensity="quiet" />
+      <div class="cta-inner">
+        <p class="io-eyebrow">Get started</p>
+        <h2>Register a class. Resolve it. Grow from there.</h2>
+        <p class="lede">Start with two services and a scope. Turn on validateOnBuild the day the graph gets big.</p>
+        <div class="actions">
+          <a class="btn primary" href="/start/quick-start/">Read the quick start</a>
+          <a class="btn ghost" href="/migration/v1-to-v2/">Coming from @nodelibraries/ioc?</a>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <span>@nodelibraries/ioc · ISC licensed</span>
+      <nav aria-label="Footer">
+        <a href="/start/introduction/">Docs</a>
+        <a href="/reference/changelog/">Changelog</a>
+        <a href="https://github.com/nodelibraries/ioc">GitHub</a>
+        <a href="https://www.npmjs.com/package/@nodelibraries/ioc">npm</a>
+      </nav>
+    </footer>
+  </div>
+</StarlightPage>
+
+<script>
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-copy]')) {
+    button.addEventListener('click', async () => {
+      await navigator.clipboard.writeText(button.dataset.copy!);
+      const label = button.querySelector('.copy');
+      if (!label) return;
+      label.textContent = 'copied';
+      setTimeout(() => (label.textContent = 'copy'), 1400);
+    });
+  }
+</script>
+
+<style>
+  /* The splash template still renders the page title and constrains width: hide one, break out of the other. */
+  :global(main:has(.io-landing) .content-panel:first-of-type) {
+    display: none;
+  }
+  :global(main:has(.io-landing) .content-panel) {
+    padding: 0;
+  }
+  :global(main:has(.io-landing) .sl-container) {
+    max-width: none;
+  }
+  .io-landing {
+    --max: 72rem;
+    color: var(--io-text);
+  }
+  .section,
+  .stats,
+  .foot {
+    max-width: var(--max);
+    margin-inline: auto;
+    padding-inline: 1.5rem;
+  }
+
+  /* Hero */
+  .hero {
+    position: relative;
+    overflow: hidden;
+    padding: 6.5rem 1.5rem 0;
+    border-bottom: 1px solid var(--io-hairline);
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, color-mix(in oklab, var(--io-accent) 7%, transparent), transparent);
+  }
+  .hero-inner {
+    position: relative;
+    max-width: 46rem;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.3rem 0.8rem 0.3rem 0.55rem;
+    border: 1px solid var(--io-hairline-strong);
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--io-surface) 80%, transparent);
+    backdrop-filter: blur(8px);
+    font-family: var(--io-mono);
+    font-size: 0.72rem;
+    color: var(--io-text-muted);
+    text-decoration: none;
+  }
+  .badge .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--io-accent);
+    box-shadow: 0 0 10px var(--io-accent);
+  }
+  .hero h1 {
+    margin: 1.6rem 0 0;
+    font-size: clamp(2.5rem, 1.6rem + 4vw, 4.6rem);
+    line-height: 1.02;
+    font-weight: 650;
+    letter-spacing: -0.045em;
+    color: var(--sl-color-white);
+  }
+  .hero h1 span {
+    color: color-mix(in oklab, var(--sl-color-white) 55%, var(--io-text-faint));
+  }
+  .lede {
+    margin: 1.4rem auto 0;
+    max-width: 36rem;
+    font-size: 1.08rem;
+    line-height: 1.6;
+    color: var(--io-text-muted);
+  }
+  .actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    height: 2.6rem;
+    padding: 0 1.15rem;
+    border-radius: 10px;
+    font-size: 0.92rem;
+    font-weight: 550;
+    text-decoration: none;
+    transition: transform 0.15s, background 0.15s, border-color 0.15s;
+  }
+  .btn.primary {
+    background: var(--sl-color-white);
+    color: var(--io-bg);
+  }
+  .btn.primary:hover {
+    transform: translateY(-1px);
+  }
+  .btn.ghost {
+    border: 1px solid var(--io-hairline-strong);
+    color: var(--sl-color-white);
+    background: color-mix(in oklab, var(--io-surface) 70%, transparent);
+  }
+  .btn.ghost:hover {
+    border-color: color-mix(in oklab, var(--io-accent) 50%, transparent);
+  }
+  .install {
+    margin-top: 1.25rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.45rem 0.6rem 0.45rem 0.9rem;
+    border: 1px solid var(--io-hairline);
+    border-radius: 10px;
+    background: color-mix(in oklab, var(--io-surface) 85%, transparent);
+    font-family: var(--io-mono);
+    font-size: 0.82rem;
+    color: var(--io-text);
+    cursor: pointer;
+  }
+  .install .prompt {
+    color: var(--io-accent);
+  }
+  .install .copy {
+    font-size: 0.68rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 6px;
+    background: var(--io-surface-2);
+    color: var(--io-text-faint);
+  }
+  .hero-code {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: 0.75rem;
+    position: relative;
+    max-width: 66rem;
+    margin: 3.5rem auto -1px;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -30px 80px -20px color-mix(in oklab, var(--io-accent) 18%, transparent);
+  }
+  .hero-code :global(.expressive-code .frame) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    height: 100%;
+  }
+  .hero-code :global(.expressive-code) {
+    height: 100%;
+  }
+  .hero-code :global(.io-hero-out) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  /* Stats strip */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    border-inline: 1px solid var(--io-hairline);
+    padding: 0;
+  }
+  .stats div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 1.6rem 1.4rem;
+    border-inline-end: 1px solid var(--io-hairline);
+  }
+  .stats div:last-child {
+    border-inline-end: none;
+  }
+  .stats strong {
+    font-size: 1.35rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--sl-color-white);
+  }
+  .stats span {
+    font-family: var(--io-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    color: var(--io-text-faint);
+    text-transform: uppercase;
+  }
+
+  /* Sections */
+  .section {
+    padding-top: 6.5rem;
+  }
+  .section h2,
+  .cta h2 {
+    margin: 0.7rem 0 2.2rem;
+    font-size: clamp(1.7rem, 1.3rem + 1.4vw, 2.5rem);
+    letter-spacing: -0.035em;
+    line-height: 1.1;
+    font-weight: 620;
+    color: var(--sl-color-white);
+    max-width: 34rem;
+  }
+
+  /* Bento */
+  .bento {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .card {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--io-hairline);
+    border-radius: 18px;
+    background: linear-gradient(180deg, var(--io-surface), color-mix(in oklab, var(--io-surface) 60%, var(--io-bg)));
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .card:hover {
+    border-color: var(--io-hairline-strong);
+  }
+  .card.wide {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    grid-template-rows: auto 1fr;
+  }
+  .card.wide .art {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    display: flex;
+    align-items: center;
+    border-bottom: 0;
+    border-left: 1px solid var(--io-hairline);
+    padding: 2rem;
+  }
+  .card.wide .card-body {
+    grid-column: 1;
+    grid-row: 1;
+    padding-top: 2rem;
+  }
+  .card.wide .card-code {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .art {
+    padding: 1.4rem 1.4rem 0.4rem;
+    border-bottom: 1px solid var(--io-hairline);
+    background: radial-gradient(ellipse 70% 90% at 50% 100%, color-mix(in oklab, var(--io-accent) 5%, transparent), transparent);
+  }
+  .card-body {
+    padding: 1.4rem 1.5rem 0.4rem;
+  }
+  .tag {
+    font-family: var(--io-mono);
+    font-size: 0.66rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--io-text-faint);
+    border: 1px solid var(--io-hairline);
+    padding: 0.15rem 0.45rem;
+    border-radius: 6px;
+  }
+  .card h3 {
+    margin: 0.9rem 0 0.5rem;
+    font-size: 1.12rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--sl-color-white);
+  }
+  .card p {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--io-text-muted);
+  }
+  .more {
+    display: inline-block;
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    font-weight: 550;
+    color: var(--sl-color-white);
+    text-decoration: none;
+  }
+  .more:hover span {
+    color: var(--io-accent);
+  }
+  .card-code {
+    margin: 1rem 1.25rem 1.25rem;
+    margin-top: auto;
+    padding-top: 1rem;
+  }
+  .card-code :global(pre) {
+    font-size: 0.78rem !important;
+  }
+
+  /* Toolbox */
+  .toolbox {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--io-hairline);
+  }
+  .toolbox > div {
+    padding: 1.5rem 1.25rem 0 0;
+  }
+  .toolbox h3 {
+    margin: 0 0 1rem;
+    font-family: var(--io-mono);
+    font-size: 0.68rem;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--io-text-faint);
+  }
+  .toolbox ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 0.95rem;
+  }
+  .toolbox code {
+    display: block;
+    font-family: var(--io-mono);
+    font-size: 0.82rem;
+    color: var(--sl-color-white);
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .toolbox span {
+    font-size: 0.82rem;
+    color: var(--io-text-faint);
+  }
+
+  /* In code */
+  .incode {
+    border: 1px solid var(--io-hairline);
+    border-radius: 16px;
+    padding: 0.5rem 1.25rem 1.25rem;
+    background: var(--io-surface);
+  }
+
+  /* CTA */
+  .cta {
+    position: relative;
+    overflow: hidden;
+    margin-top: 7rem;
+    padding: 7rem 1.5rem;
+    border-block: 1px solid var(--io-hairline);
+    text-align: center;
+  }
+  .cta-inner {
+    position: relative;
+  }
+  .cta h2 {
+    margin-inline: auto;
+  }
+
+  /* Footer */
+  .foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 2.5rem;
+    font-size: 0.82rem;
+    color: var(--io-text-faint);
+  }
+  .foot nav {
+    display: flex;
+    gap: 1.25rem;
+  }
+  .foot a {
+    color: var(--io-text-faint);
+    text-decoration: none;
+  }
+  .foot a:hover {
+    color: var(--sl-color-white);
+  }
+
+  @media (max-width: 60rem) {
+    .hero-code {
+      grid-template-columns: 1fr;
+    }
+    .bento {
+      grid-template-columns: 1fr;
+    }
+    .card.wide {
+      display: flex;
+    }
+    .card.wide .art {
+      border-left: 0;
+      border-bottom: 1px solid var(--io-hairline);
+    }
+    .toolbox {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .stats {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .stats div {
+      border-bottom: 1px solid var(--io-hairline);
+    }
+  }
+  @media (max-width: 34rem) {
+    .hero {
+      padding-top: 4rem;
+    }
+    .toolbox {
+      grid-template-columns: 1fr;
+    }
+    .foot {
+      flex-direction: column;
+    }
+  }
+</style>

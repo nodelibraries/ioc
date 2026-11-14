@@ -1,42 +1,56 @@
-name: PR Tests
+name: CI
 
 on:
+  push:
+    branches: [main]
   pull_request:
-    branches:
-      - '**'
-  workflow_dispatch:
-    inputs:
-      ref:
-        description: 'Branch, tag, or commit SHA to test'
-        required: false
-        default: main
-      repository:
-        description: 'Repository owner/name (leave default for this repo)'
-        required: false
-        default: nodelibraries/ioc
-
-permissions:
-  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        node: [20, 22, 24]
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          repository: ${{ github.event.inputs.repository || github.repository }}
-          ref: ${{ github.event.inputs.ref || github.ref }}
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
+          node-version: ${{ matrix.node }}
           cache: npm
+      # npm install, not ci: the lock comes from macOS and npm drops Linux-only wasm dependencies from it.
+      - run: npm install --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm run test:coverage
+      - run: npm run test:dist
 
-      - name: Install dependencies (force)
-        run: npm install --force
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      # npm install, not ci: the lock comes from macOS and npm drops Linux-only wasm dependencies from it.
+      - run: npm install --no-audit --no-fund
+      - run: npm run check:package
 
-      - name: Run unit tests
-        run: npm test
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            site/package-lock.json
+      # npm install, not ci: the lock comes from macOS and npm drops Linux-only wasm dependencies from it.
+      - run: npm install --no-audit --no-fund
+      # npm install, not ci: the site lock comes from macOS and npm drops a Linux-only wasm dependency from it.
+      - run: npm install --no-audit --no-fund
+        working-directory: site
+      # Builds every page, type-checks every twoslash snippet and validates every link.
+      - run: npm run build
+        working-directory: site

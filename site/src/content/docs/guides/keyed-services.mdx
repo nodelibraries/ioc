@@ -1,0 +1,128 @@
+---
+title: Keyed services
+description: Register several implementations of one token under different keys and pick one by key at resolution time.
+sidebar:
+  order: 2
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Keyed services answer "which one?" at resolution time: a `Cache` for `'eu'` and one for `'us'`, a `PaymentGateway` per
+provider, a `Notifier` per channel. They mirror .NET 8's `AddKeyedSingleton` / `GetRequiredKeyedService`.
+
+## Register and resolve
+
+`addKeyedSingleton`, `addKeyedScoped` and `addKeyedTransient` take the token, a class or factory, the key (a string or
+symbol) and, for classes with constructor parameters, the dependency tokens:
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+
+interface Notifier {
+  send(to: string, text: string): Promise<void>;
+}
+const Notifier = createToken<Notifier>('Notifier');
+
+class Logger {
+  log(msg: string) {
+    console.log(msg);
+  }
+}
+class EmailNotifier implements Notifier {
+  constructor(private readonly logger: Logger) {}
+  async send(to: string, text: string) {
+    this.logger.log(`email to ${to}: ${text}`);
+  }
+}
+class SmsNotifier implements Notifier {
+  async send(to: string, text: string) {}
+}
+
+const services = new ServiceCollection();
+services.addSingleton(Logger);
+services.addKeyedSingleton(Notifier, EmailNotifier, 'email', [Logger]);
+services.addKeyedTransient(Notifier, SmsNotifier, 'sms');
+
+const provider = services.buildServiceProvider();
+const email = await provider.getRequiredKeyedService(Notifier, 'email');
+//    ^?
+const push = await provider.getKeyedService(Notifier, 'push'); // undefined
+```
+
+- `getKeyedService(token, key)` returns `undefined` when nothing is registered for that key.
+- `getRequiredKeyedService(token, key)` throws a `ServiceNotFoundError` with `token` and `key` set:
+  `No service registered for 'Notifier' with key 'push'.`
+
+Dependencies of keyed classes are checked like any other registration: the count at registration time
+(`RegistrationError`), the types at compile time.
+
+## One registration per key
+
+Registering the same token and key again replaces the earlier one; there is no "all registrations for a key". If you
+need a list, use [multiple implementations](/guides/multiple-implementations/) instead.
+
+## Keyed and plain registrations are separate
+
+A keyed registration never answers a plain lookup, and a plain one never answers a keyed lookup:
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+class Cache {}
+// ---cut---
+const services = new ServiceCollection();
+services.addKeyedSingleton(Cache, Cache, 'eu');
+
+services.has(Cache); // false
+services.has(Cache, 'eu'); // true
+
+const provider = services.buildServiceProvider();
+await provider.getService(Cache); // undefined
+await provider.getKeyedService(Cache, 'eu'); // a Cache
+provider.isService(Cache, 'eu'); // true
+```
+
+Register a plain default next to the keyed ones if callers should get something without a key.
+
+<Aside type="caution">
+Dependency arrays hold plain tokens only: you can't inject a keyed service through `[deps]`. Resolve it in a factory
+instead: `services.addScoped(Checkout, async (p) => new Checkout(await p.getRequiredKeyedService(Gateway, 'stripe')))`.
+</Aside>
+
+## Factories get the key
+
+A keyed factory receives `(provider, key)`, so one function can build every variant:
+
+```ts twoslash
+import { ServiceCollection, createToken, type ServiceKey } from '@nodelibraries/ioc';
+
+interface Gateway {
+  readonly name: string;
+}
+const Gateway = createToken<Gateway>('Gateway');
+
+const services = new ServiceCollection();
+const gateway = (_: unknown, key?: ServiceKey): Gateway => ({ name: String(key) });
+for (const key of ['stripe', 'adyen', 'paypal']) services.addKeyedScoped(Gateway, gateway, key);
+
+const provider = services.buildServiceProvider();
+await using scope = provider.createScope();
+const pick = (country: string) => (country === 'NL' ? 'adyen' : 'stripe');
+const gw = await scope.getRequiredKeyedService(Gateway, pick('NL')); // { name: 'adyen' }
+```
+
+## Lifetimes
+
+Keyed services follow the same lifetime rules as plain ones: a keyed singleton is shared by every scope, a keyed scoped
+service is one instance per scope and key, a keyed transient is new on every call. `remove(token)` removes the keyed
+registrations of that token as well; see [Service management](/guides/service-management/).
+
+<Aside type="note">
+[Diagnostics](/guides/diagnostics/) (`getDependencyTree`, `getCircularDependencies`) cover plain registrations only.
+`validateOnBuild` does check keyed registrations for missing dependencies and captive scoped services.
+</Aside>
+
+## Related
+
+- [Factories](/guides/factories/)
+- [Multiple implementations](/guides/multiple-implementations/)
+- [Tokens](/concepts/tokens/)

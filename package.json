@@ -1,62 +1,80 @@
 {
   "name": "@nodelibraries/ioc",
-  "version": "1.3.13",
-  "description": "Type-Safe IoC Container for Node.js, TypeScript and JavaScript, inspired by .NET Core",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
-  "scripts": {
-    "build": "tsc",
-    "prepublishOnly": "npm run build",
-    "test": "jest",
-    "docs:dev": "cd docs && npm run dev",
-    "docs:build": "cd docs && npm run build",
-    "docs:preview": "cd docs && npm run preview"
-  },
+  "version": "2.0.0",
+  "description": "Type-safe IoC container for TypeScript and Node.js, inspired by .NET's ServiceCollection: singleton, scoped and transient lifetimes, keyed services, lifecycle hooks and circular-dependency support. Zero dependencies.",
   "keywords": [
     "ioc",
-    "dependency-injection",
     "di",
-    "container",
-    "typescript",
-    "nodejs",
+    "dependency-injection",
     "inversion-of-control",
-    "service-locator",
-    "singleton",
-    "scoped",
-    "transient",
-    "dotnet",
-    "dotnet-core",
-    "dependency-injection-container",
+    "container",
     "ioc-container",
-    "typescript-library",
-    "design-patterns",
-    "service-locator-pattern",
     "di-container",
+    "service-collection",
+    "service-provider",
+    "scoped",
+    "singleton",
+    "transient",
+    "keyed-services",
+    "dotnet",
+    "typescript",
     "type-safe",
     "zero-dependencies"
   ],
-  "author": "ylcnfrht",
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nodelibraries/ioc.git"
+    "url": "git+https://github.com/nodelibraries/ioc.git"
   },
+  "homepage": "https://ioc.ferhatyalcin.dev",
   "bugs": {
     "url": "https://github.com/nodelibraries/ioc/issues"
   },
-  "homepage": "http://nodelibraries.github.io/ioc/",
+  "author": {
+    "name": "ylcnfrht",
+    "url": "https://github.com/ylcnfrht"
+  },
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "sideEffects": false,
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsc -p tsconfig.build.json && tsc -p tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json','{\\\"type\\\":\\\"commonjs\\\"}')\"",
+    "typecheck": "tsc",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:dist": "npm run build && node test/dist/smoke.mjs && node test/dist/smoke.cjs && for f in examples/js/*.cjs; do case $f in *express*) ;; *) node $f > /dev/null || exit 1;; esac; done && echo 'dist ok'",
+    "check:package": "npm run build && npx -y publint --strict && npx -y @arethetypeswrong/cli --pack .",
+    "prepublishOnly": "npm run typecheck && npm run test:coverage && npm run test:dist"
   },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
-    "jest": "^30.2.0",
-    "ts-jest": "^29.4.5",
-    "typescript": "^5.0.0"
+    "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

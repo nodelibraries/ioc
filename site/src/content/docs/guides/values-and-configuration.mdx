@@ -1,0 +1,127 @@
+---
+title: Values and configuration
+description: Register configuration objects, constants and pre-built instances with addValue and typed tokens. Values are never disposed.
+sidebar:
+  order: 4
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+`addValue(token, value)` registers something that already exists: parsed configuration, a constant, a client built by
+another library, a test double. The container hands it out as is. The .NET equivalent is `AddSingleton(instance)`.
+
+## Configuration with a typed token
+
+Interfaces don't exist at runtime, so give configuration a token with [`createToken`](/concepts/tokens/). Resolving the
+token is typed without a generic argument:
+
+```ts twoslash
+declare const process: { env: Record<string, string | undefined> };
+// ---cut---
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+
+interface AppConfig {
+  port: number;
+  dbUrl: string;
+  features: { signup: boolean };
+}
+const AppConfig = createToken<AppConfig>('AppConfig');
+
+class Database {
+  constructor(private readonly config: AppConfig) {}
+  connect() {
+    return this.config.dbUrl;
+  }
+}
+
+const services = new ServiceCollection();
+services.addValue(AppConfig, {
+  port: Number(process.env.PORT ?? 3000),
+  dbUrl: process.env.DATABASE_URL ?? 'postgres://localhost/app',
+  features: { signup: true },
+});
+services.addSingleton(Database, [AppConfig]);
+
+const provider = services.buildServiceProvider();
+const config = await provider.getRequiredService(AppConfig);
+//    ^?
+```
+
+`addValue` type-checks the value against the token: `services.addValue(AppConfig, { port: '3000' })` doesn't compile.
+
+## Small values: one token each
+
+Inject a single setting with its own token rather than the whole config object, when a class needs only one value:
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+// ---cut---
+const ApiUrl = createToken<string>('ApiUrl');
+const RetryCount = createToken<number>('RetryCount');
+
+class ApiClient {
+  constructor(readonly baseUrl: string, readonly retries: number) {}
+}
+
+const services = new ServiceCollection();
+services.addValue(ApiUrl, 'https://api.example.com');
+services.addValue(RetryCount, 3);
+services.addSingleton(ApiClient, [ApiUrl, RetryCount]);
+```
+
+<Aside type="tip" title="Typed tokens beat type arguments">
+`provider.getRequiredService<string>('apiUrl')` works, but the type is only as right as the argument you write at
+every call site. A typed token (`createToken<string>('ApiUrl')`) states it once and every resolution infers it.
+</Aside>
+
+## `null` and `undefined` are values too
+
+Any value works, including `null` and `undefined`. They are registered values, not missing services:
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+// ---cut---
+const Tracer = createToken<{ span(name: string): void } | null>('Tracer');
+
+const services = new ServiceCollection();
+services.addValue(Tracer, null); // tracing disabled in this environment
+
+const provider = services.buildServiceProvider();
+provider.isService(Tracer); // true
+await provider.getRequiredService(Tracer); // null, no error
+```
+
+`getService` returns `undefined` both for "not registered" and for a registered `undefined`; use `isService` to tell them
+apart.
+
+## Values are never disposed
+
+The container didn't create a value, so it doesn't own it. Disposing the provider does not call `onDestroy`,
+`[Symbol.asyncDispose]` or `[Symbol.dispose]` on registered values. Close them yourself, or register a factory instead of a
+value if the container should own the instance:
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+declare class Pool {
+  constructor(url: string);
+  end(): Promise<void>;
+}
+const services = new ServiceCollection();
+// ---cut---
+// Owned by the container: closed on provider.dispose()
+services.addSingleton(Pool, () => {
+  const pool = new Pool('postgres://localhost/app');
+  return Object.assign(pool, { onDestroy: () => pool.end() });
+});
+```
+
+## Values and lifetimes
+
+A value behaves like a singleton: every scope gets the same object, and
+[diagnostics](/guides/diagnostics/) show it as `[SINGLETON]` with no dependencies. Mutating it changes it for everyone.
+
+## Related
+
+- [Tokens](/concepts/tokens/)
+- [Factories](/guides/factories/)
+- [Testing](/guides/testing/): swap a value for a fake

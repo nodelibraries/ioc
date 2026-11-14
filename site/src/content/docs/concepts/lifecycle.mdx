@@ -1,0 +1,161 @@
+---
+title: Lifecycle and disposal
+description: onInit after construction, onDestroy or Symbol.dispose at disposal, reverse creation order, and which provider disposes which instance.
+sidebar:
+  order: 6
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+The container creates your services, so it also cleans them up. Two optional hooks run at the edges of an instance's
+life: `onInit` after it is constructed, and `onDestroy` (or a standard dispose method) when its owner is disposed.
+
+```ts twoslash
+import { ServiceCollection, type LifecycleHooks } from '@nodelibraries/ioc';
+declare function connect(url: string): Promise<{ end(): Promise<void> }>;
+// ---cut---
+class Database implements LifecycleHooks {
+  private pool?: { end(): Promise<void> };
+
+  async onInit() {
+    this.pool = await connect('postgres://localhost/app'); // awaited before anyone receives the instance
+  }
+
+  async onDestroy() {
+    await this.pool?.end();
+  }
+}
+
+const provider = new ServiceCollection().addSingleton(Database).buildServiceProvider();
+const db = await provider.getRequiredService(Database); // connected
+await provider.dispose(); // pool closed
+```
+
+`LifecycleHooks` is an optional interface for autocompletion. The container only checks whether the methods exist.
+
+## `onInit`
+
+- Runs right after the constructor, and is awaited if it returns a promise. The caller of `getRequiredService`, and any
+  service that depends on this one, gets the instance only after `onInit` has finished.
+- Runs once per instance: once for a singleton, once per scope for a scoped service, every time for a transient.
+- Runs for **class registrations only**. A [factory](/guides/factories/) already controls construction, so it does its own
+  async setup before returning; `onInit` on a factory's result is not called. Values are never initialised either.
+- If it throws, the resolution rejects with that error and nothing is cached, so the next resolution builds a new
+  instance. The failed instance was already constructed, so it is still disposed with its owner: `onDestroy` must
+  cope with a half-initialised object.
+
+Use it for async setup a constructor can't do: opening a connection, warming a cache, reading a file.
+
+## Disposal
+
+`await provider.dispose()` (or `await scope.dispose()`, or leaving an `await using` block) disposes every instance
+that provider created and still tracks. For each instance it calls the **first** of these that exists:
+
+1. `onDestroy()`
+2. `[Symbol.asyncDispose]()`
+3. `[Symbol.dispose]()`
+
+So classes written for the standard [explicit resource management](https://github.com/tc39/proposal-explicit-resource-management)
+protocol work without changes, and a class that has both an `onDestroy` and a `Symbol.dispose` is disposed only once.
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+class TempDir {
+  async [Symbol.asyncDispose]() {
+    console.log('temp dir removed');
+  }
+}
+
+const provider = new ServiceCollection().addScoped(TempDir).buildServiceProvider();
+{
+  await using scope = provider.createScope();
+  await scope.getRequiredService(TempDir);
+} // "temp dir removed"
+```
+
+Instances returned by factories are disposed too, if they have one of these methods.
+
+### Disposed while still being built
+
+If a provider or scope is disposed while one of its services is still being built (an async factory or `onInit` is
+still running), that service is disposed as soon as construction finishes, and the pending `get*` call rejects with
+`DisposedError`. A shutdown in the middle of a request doesn't leak a connection that was being opened.
+
+### Order
+
+Instances are disposed one at a time, awaiting each, in **reverse creation order**. A service is created after its
+dependencies, so it is disposed before them: a repository closes before the pool it uses, the pool before the logger.
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+const log: string[] = [];
+
+class Logger {
+  onDestroy() {
+    log.push('Logger');
+  }
+}
+class Pool {
+  constructor(readonly logger: Logger) {}
+  onDestroy() {
+    log.push('Pool');
+  }
+}
+class Repo {
+  constructor(readonly pool: Pool) {}
+  onDestroy() {
+    log.push('Repo');
+  }
+}
+
+const provider = new ServiceCollection()
+  .addSingleton(Logger)
+  .addSingleton(Pool, [Logger])
+  .addSingleton(Repo, [Pool])
+  .buildServiceProvider();
+
+await provider.getRequiredService(Repo);
+await provider.dispose();
+console.log(log); // ['Repo', 'Pool', 'Logger']
+```
+
+### Who disposes what
+
+Each instance is disposed by the provider that owns it:
+
+| Instance | Disposed by |
+|---|---|
+| Singleton | The root provider |
+| Scoped | The scope that created it |
+| Transient resolved from a scope | That scope |
+| Transient resolved from the root | The root provider |
+| Value from `addValue` | Never: the container didn't create it |
+
+<Aside type="caution">
+A transient with a dispose method that is resolved from the **root** is kept for disposal until the root is disposed,
+usually at shutdown (.NET behaves the same way). Resolving such transients from the root over and over grows that list without bound.
+Resolve disposable transients from a scope, which releases them when it ends.
+</Aside>
+
+### Errors during disposal
+
+Every instance is disposed even if some of them throw. After the last one, the error is rethrown: the error itself if
+one instance failed, or an `AggregateError` with all of them if several did.
+
+```ts twoslash
+import { type ServiceProvider } from '@nodelibraries/ioc';
+declare const provider: ServiceProvider;
+// ---cut---
+try {
+  await provider.dispose();
+} catch (error) {
+  const errors = error instanceof AggregateError ? error.errors : [error];
+  for (const e of errors) console.error('dispose failed:', e);
+}
+```
+
+The provider counts as disposed either way: further resolutions throw `DisposedError`. Calling `dispose()` again, or
+concurrently (two shutdown hooks, `await using` plus an explicit call), waits for the first disposal to finish and
+resolves without rethrowing its errors: only the first caller sees them.

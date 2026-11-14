@@ -144,7 +144,7 @@ async function main() {
   console.log('  - When doing conditional registration');
 }
 
-main().catch(console.error);
+await main();
 
 /*
 Expected Console Output:

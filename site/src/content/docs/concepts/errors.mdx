@@ -1,0 +1,118 @@
+---
+title: Errors
+description: Every error the container throws, its fields, when it happens and how to handle it, all extending IocError.
+sidebar:
+  order: 9
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Every error the container throws extends `IocError`, which extends `Error`. Each has its own class, so you can tell
+them apart with `instanceof`, and its own `name`, so logs show which one it was. Messages name the tokens involved and,
+where it applies, the path of services being resolved.
+
+| Error | Thrown when | Extra fields | Thrown by |
+|---|---|---|---|
+| `ServiceNotFoundError` | A required service, or a dependency of one, has no registration | `token`, `key`, `path` | `getRequired*`, resolving dependencies |
+| `CircularDependencyError` | A cycle partner was used before its constructor finished | `path` | Resolution |
+| `ScopeError` | Scoped service resolved from the root, or captured by a singleton (`validateScopes`) | none | Resolution |
+| `RegistrationError` | A registration is invalid: too few dependency tokens, a non-class token with no implementation | none | `add*`, `tryAdd*`, `replace` |
+| `ValidationError` | `validateOnBuild` found problems | `errors: string[]` | `buildServiceProvider` |
+| `DisposedError` | A provider or scope was used after `dispose()` | none | `get*`, `createScope` |
+
+Errors thrown by your own code (a constructor, a factory, `onInit`, `onDestroy`) pass through unchanged.
+
+## `ServiceNotFoundError`
+
+```ts twoslash
+import { ServiceCollection, ServiceNotFoundError, createToken, tokenName } from '@nodelibraries/ioc';
+// ---cut---
+interface Mailer {
+  send(to: string): Promise<void>;
+}
+const Mailer = createToken<Mailer>('Mailer');
+class SignupService {
+  constructor(readonly mailer: Mailer) {}
+}
+
+const provider = new ServiceCollection().addTransient(SignupService, [Mailer]).buildServiceProvider();
+
+try {
+  await provider.getRequiredService(SignupService);
+} catch (error) {
+  if (error instanceof ServiceNotFoundError) {
+    error.message; // "No service registered for 'Mailer' (required by SignupService)."
+    tokenName(error.token); // 'Mailer'
+    error.path.map(tokenName); // ['SignupService']: what was being resolved, outermost first
+  }
+}
+```
+
+For keyed lookups, `key` holds the key and the message says `with key '…'`. `getService` and `getKeyedService` return
+`undefined` for a missing top-level service instead of throwing, but a missing **dependency** of a registered service
+still throws.
+
+## `CircularDependencyError`
+
+Thrown when a constructor uses a [cycle](/concepts/circular-dependencies/) partner that isn't constructed yet. `path`
+is the cycle, starting and ending with the service that was used too early: `A → B → A`.
+
+## `ScopeError`
+
+Only with `validateScopes: true`. Two messages:
+
+- `Scoped service 'X' cannot be resolved from the root provider. Create a scope first: …`
+- `Scoped service 'X' cannot be injected into singleton 'Y' (Y → … → X): the singleton would keep one scope's instance forever.`
+
+See [Validation](/concepts/validation/).
+
+## `RegistrationError`
+
+Thrown by the registration call itself, so a bad registration fails at startup, at the line that made it:
+
+- `'UserService' has 2 constructor parameter(s) but 1 dependency token(s) were given for 'UserService'. …`
+- `'Logger' is not a class: register it with an implementation or a factory.` (a string, symbol or
+  `InjectionToken` registered without an implementation)
+
+## `ValidationError`
+
+Thrown by `buildServiceProvider({ validateOnBuild: true })`. `errors` lists every problem; the message joins them
+as a bulleted list.
+
+## `DisposedError`
+
+`Cannot use a disposed service provider or scope.` Thrown by every `get*` method and `createScope()` after the
+provider or scope was disposed, and on any scope after its root was disposed. A `get*` call that was still building
+its service when the owner was disposed rejects with it too (the half-built service is disposed). `dispose()` itself
+never throws it: later calls wait for the first disposal.
+
+## Handling them
+
+Catch `IocError` to separate container problems (wiring bugs, almost always) from errors your services throw:
+
+```ts twoslash
+import { IocError, type ServiceProvider } from '@nodelibraries/ioc';
+declare const scope: ServiceProvider;
+class ReportService {
+  async run() {}
+}
+declare const log: { error(msg: string, err: unknown): void };
+// ---cut---
+try {
+  const reports = await scope.getRequiredService(ReportService);
+  await reports.run();
+} catch (error) {
+  if (error instanceof IocError) {
+    log.error('container misconfigured', error); // a bug: alert, don't retry
+  }
+  throw error;
+}
+```
+
+<Aside type="tip">
+Most of these errors are wiring bugs that should never reach production. `validateOnBuild` and `validateScopes`
+in a startup test turn them into test failures. See [Validation](/concepts/validation/).
+</Aside>
+
+Errors raised while **disposing** are your services' own errors, rethrown after every instance was disposed (an
+`AggregateError` if more than one failed). See [Lifecycle and disposal](/concepts/lifecycle/).

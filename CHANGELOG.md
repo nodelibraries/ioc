@@ -1,13 +1,43 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+## 2.0.0 (2026-11-14)
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The resolution engine was rewritten; the registration API keeps its shape. Upgrade guide: https://ioc.ferhatyalcin.dev/migration/v1-to-v2/
 
-## [Unreleased]
+### Fixed (defects present in 1.3.x)
 
-_No unreleased changes._
+- Classes with `#private` fields failed to resolve (every instance was copied onto a placeholder object).
+- Concurrent resolutions of a transient service returned the same object.
+- Singletons were cached by `token.toString()` + class name: keyed singletons of one class shared an instance, different symbols with the same description collided, factories with identical source code (e.g. registered in a loop) were reported as circular.
+- Scoped services with several implementations returned the same instance from `getServices`.
+- `dispose()` skipped all but the first implementation of a token and disposed in creation order.
+- Keyed registrations leaked into `getService(token)` and could not declare dependencies.
+- `replace()` always switched the lifetime to singleton.
+- `remove()` left keyed registrations behind; providers shared mutable state with their collection.
+- `addValue(token, null)` made `getRequiredService` throw "No provider found".
+- Plain `function` factories were called with `new`.
+- Error messages printed the full source of class tokens.
+
+### Added
+
+- `createToken<T>(name)` / `InjectionToken<T>`: typed tokens; resolution infers `T`.
+- Compile-time checks: dependency lists against constructor parameters; implementations, factories and values against the token type. Abstract classes as tokens.
+- Typed errors: `IocError`, `ServiceNotFoundError` (with `token`, `key`, resolution `path`), `CircularDependencyError` (`path`), `ScopeError`, `RegistrationError`, `ValidationError` (`errors`), `DisposedError`.
+- Circular dependencies for every lifetime through a proxy that keeps identity and `#private` fields; deadlock detection for concurrent cycles, also through async factories.
+- `validateOnBuild` reports missing dependencies of keyed services and, with `validateScopes`, singletons that capture scoped services. `validateScopes` reports the capture path at runtime.
+- `await using scope = provider.createScope()`; `Symbol.asyncDispose` / `Symbol.dispose` on services; scopes dispose the transients they created; dispose errors are rethrown after every service ran (`AggregateError` for several).
+- Keyed services take a dependency list (`addKeyedScoped(token, Impl, key, [deps])`); keyed factories receive the key.
+- `ServiceCollection.has(token, key?)`.
+- ESM + CommonJS builds with an `exports` map.
+
+### Changed
+
+- Registrations are snapshotted by `buildServiceProvider()`: register everything before building.
+- Dependency counts are checked when registering (`RegistrationError`), not when resolving.
+- A token-only registration (`addSingleton(token)`) requires a class. Only `class` syntax is treated as an implementation; plain and arrow functions are factories.
+- `isService()` is synchronous. `removeAll()` was removed (`remove()` does the same).
+- Factories receive a provider view that carries the resolution chain (not the provider object itself).
+- Node.js ≥ 20, TypeScript ≥ 5.4. Docs moved to https://ioc.ferhatyalcin.dev.
 
 ## [1.3.11] - 2025-11-19
 

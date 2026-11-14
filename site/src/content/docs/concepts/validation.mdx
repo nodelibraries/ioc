@@ -1,0 +1,147 @@
+---
+title: Validation
+description: validateScopes and validateOnBuild, catching captive dependencies, scoped-from-root resolutions and missing registrations before they bite.
+sidebar:
+  order: 8
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import DependencyGraph from '../../../components/DependencyGraph.tsx';
+
+Two options of `buildServiceProvider` find wiring mistakes early. Both are off by default, like in .NET, where
+`ValidateScopes` and `ValidateOnBuild` are switched on in development.
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+const services = new ServiceCollection();
+// ---cut---
+const provider = services.buildServiceProvider({
+  validateScopes: true, // enforce lifetime rules while resolving
+  validateOnBuild: true, // check every registration now
+});
+```
+
+| Option | Checks | When | Throws |
+|---|---|---|---|
+| `validateScopes` | Scoped resolved from the root; scoped captured by a singleton | On every resolution | `ScopeError` |
+| `validateOnBuild` | Every dependency is registered | In `buildServiceProvider()` | `ValidationError` |
+| both | The above, plus every singleton that would capture a scoped service | In `buildServiceProvider()` | `ValidationError` |
+
+Turn both on in development and in tests. In production they cost little: `validateOnBuild` runs once at startup, and
+`validateScopes` adds a short walk of the current resolution chain.
+
+## `validateScopes`
+
+### Scoped services from the root
+
+A scoped service resolved from the root provider is cached on the root and lives until shutdown: in effect a
+singleton, holding whatever per-request state it saw first.
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+class RequestContext {}
+
+const provider = new ServiceCollection().addScoped(RequestContext).buildServiceProvider({ validateScopes: true });
+
+await provider.getRequiredService(RequestContext);
+// ScopeError: Scoped service 'RequestContext' cannot be resolved from the root provider.
+// Create a scope first: `await using scope = provider.createScope();`
+```
+
+### Captive dependencies
+
+A singleton that depends on a scoped service (directly or through transients) captures the first scope's instance and
+hands it to every later request. That is a **captive dependency**:
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+class DbTransaction {}
+class ReportCache {
+  constructor(readonly tx: DbTransaction) {}
+}
+
+const provider = new ServiceCollection()
+  .addScoped(DbTransaction)
+  .addSingleton(ReportCache, [DbTransaction])
+  .buildServiceProvider({ validateScopes: true });
+
+await using scope = provider.createScope();
+await scope.getRequiredService(ReportCache);
+// ScopeError: Scoped service 'DbTransaction' cannot be injected into singleton 'ReportCache'
+// (ReportCache → DbTransaction): the singleton would keep one scope's instance forever.
+```
+
+The message shows the path from the singleton to the scoped service, so captures through intermediate transients are
+easy to trace. This check also covers dependencies resolved inside [factories](/guides/factories/), because it runs
+during resolution.
+
+The fix is one of: make the consumer scoped, make the dependency a singleton (if it holds no per-request state),
+or resolve the scoped service per call from a scope instead of injecting it.
+
+## `validateOnBuild`
+
+Checks every registration (plain and keyed) when the provider is built and throws one `ValidationError` that lists
+**every** problem, not just the first. `error.errors` holds them as an array of strings.
+
+```ts twoslash
+import { ServiceCollection, ValidationError, createToken } from '@nodelibraries/ioc';
+// ---cut---
+interface Mailer {
+  send(to: string): Promise<void>;
+}
+const Mailer = createToken<Mailer>('Mailer');
+class DbTransaction {}
+class SignupService {
+  constructor(readonly mailer: Mailer, readonly tx: DbTransaction) {}
+}
+
+const services = new ServiceCollection()
+  .addScoped(DbTransaction)
+  .addSingleton(SignupService, [Mailer, DbTransaction]); // Mailer never registered
+
+try {
+  services.buildServiceProvider({ validateOnBuild: true, validateScopes: true });
+} catch (error) {
+  if (error instanceof ValidationError) console.log(error.errors);
+  // [
+  //   "'SignupService' depends on 'Mailer', which is not registered.",
+  //   "Singleton 'SignupService' captures scoped 'DbTransaction' (SignupService → DbTransaction)."
+  // ]
+}
+```
+
+The captive-dependency check runs at build time only when `validateScopes` is on as well. With `validateOnBuild` alone
+you get the missing-dependency check.
+
+The graph below runs the same analysis on an editable set of registrations: captive edges are marked from the
+singleton down to the scoped service it would capture.
+
+<DependencyGraph client:visible preset="captive" />
+
+<Aside type="caution">
+`validateOnBuild` sees dependency arrays only. A factory's dependencies are resolved inside the function, so the
+container can't know them up front: a factory that asks for an unregistered service still fails at resolution,
+and a factory singleton that resolves a scoped service is caught only by `validateScopes` at resolution time.
+Prefer classes with dependency arrays where you want build-time guarantees.
+</Aside>
+
+## In tests
+
+A cheap, valuable test: build the real container with both options on. It fails as soon as someone adds a dependency
+without registering it.
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+declare function registerServices(services: ServiceCollection): void;
+declare function it(name: string, fn: () => void | Promise<void>): void;
+// ---cut---
+it('wires the container', () => {
+  const services = new ServiceCollection();
+  registerServices(services);
+  services.buildServiceProvider({ validateOnBuild: true, validateScopes: true });
+});
+```
+
+See [Testing](/guides/testing/) for more.

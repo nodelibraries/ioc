@@ -1,0 +1,177 @@
+---
+title: Registration
+description: Every way to register a service with ServiceCollection, class, implementation, factory or value, and what the container does with each.
+sidebar:
+  order: 1
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+A `ServiceCollection` is a list of registrations. Each one says: for this **token**, build the service **this way**,
+with **this lifetime**. You fill the collection at startup, then call `buildServiceProvider()` to get a
+`ServiceProvider` that resolves services.
+
+## The five forms
+
+`addSingleton`, `addScoped` and `addTransient` accept the same arguments. Only the [lifetime](/concepts/lifetimes/) differs.
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+
+interface Clock {
+  now(): Date;
+}
+const Clock = createToken<Clock>('Clock');
+class SystemClock implements Clock {
+  now() {
+    return new Date();
+  }
+}
+class Cache {}
+class Scheduler {
+  constructor(private clock: Clock) {}
+}
+class AuditLog {
+  constructor(private clock: Clock, private cache: Cache) {}
+}
+// ---cut---
+const services = new ServiceCollection();
+
+// 1. A class with no constructor parameters is its own token.
+services.addSingleton(Cache);
+
+// 2. A class is its own token, with one dependency token per constructor parameter.
+services.addSingleton(Scheduler, [Clock]);
+
+// 3. A token and an implementation class.
+services.addSingleton(Clock, SystemClock);
+
+// 4. A token, an implementation and its dependencies.
+const Audit = createToken<AuditLog>('Audit');
+services.addSingleton(Audit, AuditLog, [Clock, Cache]);
+
+// 5. A token and a factory: any function that returns the instance (or a promise of it).
+services.addSingleton('startedAt', () => new Date());
+```
+
+Every method returns the collection, so calls chain.
+
+| Form | Use it when |
+|---|---|
+| `add*(Class)` / `add*(Class, [deps])` | The concrete class is what callers ask for. |
+| `add*(token, Impl)` / `add*(token, Impl, [deps])` | Callers depend on an interface or base class; you pick the implementation here. |
+| `add*(token, factory)` | Construction needs logic: config, async setup, a third-party constructor. See [Factories](/guides/factories/). |
+| `addValue(token, value)` | You already have the object: config, a constant, an instance built elsewhere. |
+
+## Classes versus factories
+
+The second argument is treated as an **implementation** only if it is written with `class` syntax.
+Any other function, arrow or `function`, is a **factory** and is called as `factory(provider, key)`.
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+class Database {
+  constructor(readonly url: string) {}
+}
+declare function readDatabaseUrl(): string;
+// ---cut---
+const services = new ServiceCollection();
+
+services.addSingleton(Database, (provider) => new Database(readDatabaseUrl()));
+```
+
+Factories get the provider, so they can resolve other services. They are covered in [Factories](/guides/factories/).
+
+<Aside type="caution">
+Registering a token alone (`add*(token)` or `add*(token, [deps])`) requires the token to be a class. A string,
+symbol or `InjectionToken` with no implementation throws a `RegistrationError` straight away.
+</Aside>
+
+## Values
+
+`addValue` registers something that already exists. Any value is allowed, `null` and `undefined` included.
+Values behave like singletons but are never constructed and never [disposed](/concepts/lifecycle/): the container
+didn't create them, so it doesn't own them.
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+// ---cut---
+interface Config {
+  port: number;
+  dbUrl: string;
+}
+const Config = createToken<Config>('Config');
+
+const services = new ServiceCollection().addValue(Config, { port: 8080, dbUrl: 'postgres://localhost/app' });
+```
+
+See [Values and configuration](/guides/values-and-configuration/).
+
+## Registering a token twice
+
+Registrations don't overwrite each other: a second `add*` for the same token is added to the list.
+`getService` and `getRequiredService` return the **last** one; `getServices` returns all of them in order.
+Each registration has its own instance, even when two registrations use the same class.
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+interface Notifier {
+  send(msg: string): void;
+}
+class EmailNotifier implements Notifier {
+  send(msg: string) {}
+}
+class SmsNotifier implements Notifier {
+  send(msg: string) {}
+}
+// ---cut---
+const Notifier = createToken<Notifier>('Notifier');
+
+const provider = new ServiceCollection()
+  .addSingleton(Notifier, EmailNotifier)
+  .addSingleton(Notifier, SmsNotifier)
+  .buildServiceProvider();
+
+await provider.getRequiredService(Notifier); // SmsNotifier (last wins)
+await provider.getServices(Notifier); // [EmailNotifier, SmsNotifier]
+```
+
+That is how plugins and handlers are collected; see [Multiple implementations](/guides/multiple-implementations/).
+To register only if nothing is there yet, use `tryAddSingleton` / `tryAddScoped` / `tryAddTransient`:
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+interface Notifier {
+  send(msg: string): void;
+}
+const Notifier = createToken<Notifier>('Notifier');
+class EmailNotifier implements Notifier {
+  send(msg: string) {}
+}
+class ConsoleNotifier implements Notifier {
+  send(msg: string) {}
+}
+const services = new ServiceCollection();
+// ---cut---
+// A library sets a default; the app's own registration, made earlier, wins.
+services.tryAddSingleton(Notifier, ConsoleNotifier);
+```
+
+`remove`, `replace` and `has` edit the collection before it is built: see [Service management](/guides/service-management/).
+Keyed registrations (`addKeyedSingleton` and friends) are a separate namespace: see [Keyed services](/guides/keyed-services/).
+
+## Building the provider
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+const services = new ServiceCollection();
+// ---cut---
+const provider = services.buildServiceProvider({
+  validateScopes: true, // scoped services can't leak into singletons or the root
+  validateOnBuild: true, // every dependency must be registered
+});
+```
+
+`buildServiceProvider` copies the registrations. Changing the collection afterwards does not affect providers
+already built, so you can build a provider, tweak the collection and build a second one (handy in tests).
+Both options are off by default; see [Validation](/concepts/validation/).

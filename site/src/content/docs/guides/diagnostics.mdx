@@ -1,0 +1,173 @@
+---
+title: Diagnostics
+description: Print the dependency tree of a service and find every dependency cycle in a collection, before anything is resolved.
+sidebar:
+  order: 6
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import DependencyGraph from '../../../components/DependencyGraph.tsx';
+
+Four methods on `ServiceCollection` answer "what does this service pull in?" and "where are the cycles?". They read the
+registrations only: nothing is constructed, so you can call them in a test, a CLI command or a startup log.
+
+| Method | Returns |
+| --- | --- |
+| `getDependencyTree(token)` | A `DependencyTreeNode` tree |
+| `visualizeDependencyTree(token)` | The same tree as text |
+| `getCircularDependencies()` | Every cycle, as `CircularDependency[]` |
+| `visualizeCircularDependencies()` | The cycles as text |
+
+## Try it
+
+Edit the registrations and watch the graph. Cycles come from `getCircularDependencies()`; captive dependencies (a
+singleton reaching a scoped service) are the ones `validateScopes` would reject.
+
+<DependencyGraph client:visible preset="app" />
+
+## The dependency tree
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+
+interface Logger {
+  log(msg: string): void;
+}
+const Logger = createToken<Logger>('Logger');
+const Config = createToken<{ url: string }>('Config');
+
+class ConsoleLogger implements Logger {
+  log(msg: string) {}
+}
+class Database {
+  constructor(readonly config: { url: string }, readonly logger: Logger) {}
+}
+class UserRepository {
+  constructor(readonly db: Database) {}
+}
+class Mailer {
+  constructor(readonly logger: Logger) {}
+}
+class UserService {
+  constructor(readonly repo: UserRepository, readonly mailer: Mailer, readonly logger: Logger) {}
+}
+
+const services = new ServiceCollection();
+services.addValue(Config, { url: 'postgres://localhost/app' });
+services.addSingleton(Logger, ConsoleLogger);
+services.addSingleton(Database, [Config, Logger]);
+services.addScoped(UserRepository, [Database]);
+services.addTransient(Mailer, [Logger]);
+services.addScoped(UserService, [UserRepository, Mailer, Logger]);
+
+console.log(services.visualizeDependencyTree(UserService));
+```
+
+prints:
+
+```text
+└── UserService [SCOPED]
+    ├── UserRepository [SCOPED]
+    │   └── Database [SINGLETON]
+    │       ├── Config [SINGLETON]
+    │       └── Logger [SINGLETON]
+    ├── Mailer [TRANSIENT]
+    │   └── Logger [SINGLETON]
+    └── Logger [SINGLETON]
+```
+
+`getDependencyTree` returns the same thing as data. Each node has `token`, `name`, `lifetime`, `depth` and
+`dependencies`:
+
+```json
+{
+  "name": "Mailer",
+  "lifetime": "TRANSIENT",
+  "depth": 0,
+  "dependencies": [{ "name": "Logger", "lifetime": "SINGLETON", "depth": 1, "dependencies": [] }]
+}
+```
+
+Two extra `lifetime` values show problems:
+
+- `NOT_REGISTERED`: a dependency has no plain registration (`└── Nope [NOT_REGISTERED]`).
+- `CIRCULAR`: the dependency is already on the path. The node has `isCircular: true` and `circularPath`, and the text
+  form marks it: `└── A [CIRCULAR] ⚠️ CIRCULAR`.
+
+Values show as `[SINGLETON]`. Factories show as leaves: their dependencies are inside a function the container can't
+inspect.
+
+## Finding cycles
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+class A {
+  constructor(readonly b: B) {}
+}
+class B {
+  constructor(readonly c: C) {}
+}
+class C {
+  constructor(readonly a: A) {}
+}
+class Self {
+  constructor(readonly self: Self) {}
+}
+
+const services = new ServiceCollection();
+services.addSingleton(A, [B]).addSingleton(B, [C]).addSingleton(C, [A]);
+services.addSingleton(Self, [Self]);
+
+console.log(services.visualizeCircularDependencies());
+const cycles = services.getCircularDependencies();
+cycles.map((c) => c.tokens.map((t) => t.name)); // [['A', 'B', 'C', 'A'], ['Self', 'Self']]
+```
+
+prints:
+
+```text
+Found 2 circular dependencies:
+
+Circular Dependency 1:
+  A → B → C → A
+
+Circular Dependency 2:
+  Self → Self
+```
+
+With no cycles it prints `No circular dependencies found.`
+
+A cycle is not an error: the container resolves it with a proxy (see
+[Circular dependencies](/concepts/circular-dependencies/)). The report tells you where a constructor must not touch
+its partner, and where a refactor might be worth it.
+
+<Aside type="note">
+Both methods follow the **last** plain registration of each token, the one `getService` would use. Keyed registrations
+and the earlier registrations of a token (only reachable through `getServices`) are not walked.
+</Aside>
+
+## A wiring test
+
+Put the checks in a test so a bad registration fails CI instead of production:
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+declare function addAppServices(services: ServiceCollection): ServiceCollection;
+declare function it(name: string, fn: () => void): void;
+declare function expect<T>(value: T): { toEqual(expected: unknown): void; not: { toThrow(): void } };
+// ---cut---
+it('wires the app', () => {
+  const services = addAppServices(new ServiceCollection());
+  expect(() => services.buildServiceProvider({ validateOnBuild: true, validateScopes: true })).not.toThrow();
+  expect(services.getCircularDependencies()).toEqual([]);
+});
+```
+
+`validateOnBuild` reports missing dependencies and captive scoped services; see [Validation](/concepts/validation/).
+
+## Related
+
+- [Circular dependencies](/concepts/circular-dependencies/)
+- [Validation](/concepts/validation/)
+- [Testing](/guides/testing/)

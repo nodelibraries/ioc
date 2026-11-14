@@ -1,0 +1,89 @@
+---
+title: Installation
+description: Install @nodelibraries/ioc with npm, pnpm, yarn or bun, import it from ESM or CommonJS, and check your TypeScript settings.
+sidebar:
+  order: 2
+---
+
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
+
+<Tabs syncKey="pm">
+  <TabItem label="npm">
+    ```sh
+    npm i @nodelibraries/ioc
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```sh
+    pnpm add @nodelibraries/ioc
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```sh
+    yarn add @nodelibraries/ioc
+    ```
+  </TabItem>
+  <TabItem label="bun">
+    ```sh
+    bun add @nodelibraries/ioc
+    ```
+  </TabItem>
+</Tabs>
+
+The package has no runtime dependencies. It needs Node.js 20 or later; any modern browser or bundler works too.
+
+## Importing
+
+Both module formats are published, each with its own type declarations.
+
+<Tabs syncKey="module">
+  <TabItem label="ESM">
+    ```ts
+    import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+    ```
+  </TabItem>
+  <TabItem label="CommonJS">
+    ```js
+    const { ServiceCollection, createToken } = require('@nodelibraries/ioc');
+    ```
+  </TabItem>
+</Tabs>
+
+There is one entry point. Everything is a named export: `ServiceCollection`, `ServiceProvider`, `createToken`,
+`InjectionToken`, `ServiceLifetime`, `tokenName`, the [error classes](/concepts/errors/) and the public types.
+
+## TypeScript settings
+
+Nothing special is required beyond a recent compiler:
+
+- **TypeScript 5.4 or later.** Implementations, factories and values are checked against the token's type with
+  `NoInfer`, which arrived in TypeScript 5.4. Plain JavaScript has no such requirement.
+- **No decorators.** You don't need `experimentalDecorators`, `emitDecoratorMetadata` or `reflect-metadata`.
+  Dependencies are listed at registration, not read from metadata.
+- **`strict` recommended.** The [dependency checks](/concepts/dependencies/) compare constructor parameter types with
+  token types; they are most useful with strict null checks on.
+- **`await using`** (to dispose a scope automatically) needs TypeScript 5.2 or later and the disposable types: set
+  `"lib"` to include `"ESNext.Disposable"` (or `"ESNext"`). TypeScript compiles `await using` down to a helper that
+  needs `Symbol.asyncDispose` at runtime, which Node.js defines from 20.4 on; recent Node.js versions also run
+  `await using` natively.
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "ESNext.Disposable"],
+    "module": "NodeNext",
+    "strict": true
+  }
+}
+```
+
+<Aside type="note">
+`await using` is optional. Calling `await scope.dispose()` in a `finally` block does the same thing on any version.
+</Aside>
+
+## JavaScript
+
+The library works from plain JavaScript too. You lose the compile-time checks, but the runtime checks stay:
+the dependency count is validated at registration and missing services throw typed errors.
+See [Using it from JavaScript](/guides/javascript/).

@@ -1,0 +1,141 @@
+---
+title: Circular dependencies
+description: How the container resolves A → B → A for every lifetime with a proxy, what you may and may not do in a constructor, and how to find cycles.
+sidebar:
+  order: 7
+---
+
+import { Aside } from '@astrojs/starlight/components';
+import DependencyGraph from '../../../components/DependencyGraph.tsx';
+
+A cycle is a chain of dependencies that leads back to where it started: `OrderService` needs `PaymentService`, which
+needs `OrderService`. Constructor injection can't satisfy that directly, since each constructor needs the other's
+finished instance first. The container resolves it anyway, for singleton, scoped and transient services alike.
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+class OrderService {
+  constructor(private readonly payments: PaymentService) {}
+  checkout(id: string) {
+    return this.payments.charge(id);
+  }
+  label(id: string) {
+    return `order ${id}`;
+  }
+}
+
+class PaymentService {
+  constructor(private readonly orders: OrderService) {}
+  charge(id: string) {
+    return `charged ${this.orders.label(id)}`; // uses the partner in a method: fine
+  }
+}
+
+const provider = new ServiceCollection()
+  .addSingleton(OrderService, [PaymentService])
+  .addSingleton(PaymentService, [OrderService])
+  .buildServiceProvider();
+
+const orders = await provider.getRequiredService(OrderService);
+orders.checkout('42'); // 'charged order 42'
+```
+
+## How it works
+
+When resolving `OrderService` reaches `OrderService` again, the container hands `PaymentService` a **proxy** for the
+`OrderService` still being built, instead of failing. Once `OrderService`'s constructor returns, the proxy forwards every
+property access, method call and assignment to the real instance.
+
+- **Identity holds.** Everyone in the cycle ends up with the same object: `orders.payments.orders === orders`. That
+  object is the proxy: for a service that took part in a cycle, the proxy is the canonical instance every caller gets.
+  `instanceof` works, and `orders.constructor` is the real class.
+- **Methods are bound to the real instance**, so `#private` fields and `this` work as usual. Each method is bound
+  once, so `orders.checkout === orders.checkout` holds (removing an event listener works).
+- **Every lifetime.** Singleton and scoped cycles share one instance per root or scope. Transient cycles work within one
+  resolution: each `getRequiredService` builds a fresh cycle.
+- **Factories are part of the chain.** A [factory](/guides/factories/) receives a provider that carries the current
+  resolution path, so a cycle that passes through `provider.getRequiredService(...)` inside a factory is detected
+  and resolved the same way. Resolve through that provider, not one captured from outside the factory.
+- **Concurrent resolutions.** If two resolutions start from opposite ends of a cycle at the same time
+  (`Promise.all([get(A), get(B)])`), each would wait for the other forever. The container detects that wait and hands
+  out a proxy, so both finish and still share the same instances.
+
+## Don't touch a partner in the constructor
+
+The proxy can only forward to an instance that exists. Using a cycle partner **inside a constructor**, before the
+partner's own constructor has returned, throws a `CircularDependencyError` with the path:
+
+```ts twoslash
+import { ServiceCollection, CircularDependencyError } from '@nodelibraries/ioc';
+// ---cut---
+class A {
+  constructor(readonly b: B) {}
+  name = 'A';
+}
+class B {
+  readonly label: string;
+  constructor(a: A) {
+    this.label = `B of ${a.name}`; // A's constructor hasn't finished yet
+  }
+}
+
+const provider = new ServiceCollection().addSingleton(A, [B]).addSingleton(B, [A]).buildServiceProvider();
+
+try {
+  await provider.getRequiredService(A);
+} catch (error) {
+  if (error instanceof CircularDependencyError) {
+    console.log(error.path.map((t) => (t as Function).name)); // ['A', 'B', 'A']
+    // Circular dependency A → B → A: 'A' was used before its constructor finished. …
+  }
+}
+```
+
+Store the reference in the constructor and use it later, in a method. Storing it is always safe; reading from it,
+calling it or spreading it is not, until the constructor chain completes.
+
+If a constructor in a cycle throws (this error or any other), the services that already captured its proxy are
+evicted along with it. The next resolution rebuilds the whole cycle from scratch instead of handing out objects that
+point at an instance that never finished.
+
+## Proxy limits
+
+The proxy forwards everything except one thing: it can't be frozen or sealed. `Object.freeze(orders)`,
+`Object.seal` and `Object.preventExtensions` throw a `TypeError` for a service that took part in a cycle. Freeze inner
+data objects instead, or break the cycle.
+
+## See the cycles
+
+`getCircularDependencies()` lists every cycle among plain registrations, and `visualizeCircularDependencies()` prints
+them. The graph below is built from a real `ServiceCollection` and colours each cycle it reports. Edit the
+registrations to break or create cycles.
+
+<DependencyGraph client:visible preset="cycle" />
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+class A {
+  constructor(b: B) {}
+}
+class B {
+  constructor(a: A) {}
+}
+// ---cut---
+const services = new ServiceCollection().addSingleton(A, [B]).addSingleton(B, [A]);
+
+console.log(services.visualizeCircularDependencies());
+// Found 1 circular dependency:
+//
+// Circular Dependency 1:
+//   A → B → A
+```
+
+These diagnostics read the dependency arrays, so they can't see dependencies resolved inside factories.
+More in [Diagnostics](/guides/diagnostics/).
+
+<Aside type="tip">
+Supported is not the same as recommended. A cycle usually means two classes share a responsibility. Consider
+extracting the shared part into a third service both depend on, or passing a callback instead of the whole service.
+Use `getCircularDependencies()` in a test to keep new cycles from sneaking in.
+</Aside>

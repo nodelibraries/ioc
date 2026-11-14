@@ -1,4 +1,4 @@
-import { ServiceCollection, ServiceProvider, ServiceFactory } from '@nodelibraries/ioc';
+import { ServiceCollection, ServiceProvider, type ServiceFactory } from '@nodelibraries/ioc';
 
 /**
  * Factory Pattern Example
@@ -57,7 +57,7 @@ async function main() {
 
   services.addSingleton<IHttpClient>(IHttpClientToken, httpClientFactory);
 
-  const provider = services.buildServiceProvider();
+  let provider = services.buildServiceProvider();
   const httpClient = await provider.getRequiredService<IHttpClient>(IHttpClientToken);
   await httpClient.get('/users');
 
@@ -107,6 +107,8 @@ async function main() {
 
   services.addSingleton<IDatabase>(IDatabaseToken, databaseFactory);
 
+  // Registrations are snapshotted at build time: rebuild after adding services.
+  provider = services.buildServiceProvider();
   const db = await provider.getRequiredService<IDatabase>(IDatabaseToken);
   await db.query('SELECT * FROM users');
 
@@ -147,6 +149,8 @@ async function main() {
 
   services.addSingleton<ILogger>(ILoggerToken, loggerFactory);
 
+  // Registrations are snapshotted at build time: rebuild after adding services.
+  provider = services.buildServiceProvider();
   const logger = await provider.getRequiredService<ILogger>(ILoggerToken);
   logger.log('Test message');
 
@@ -182,13 +186,15 @@ async function main() {
 
   services.addSingleton<IApiClient>(IApiClientToken, apiClientFactory);
 
+  // Registrations are snapshotted at build time: rebuild after adding services.
+  provider = services.buildServiceProvider();
   const apiClient = await provider.getRequiredService<IApiClient>(IApiClientToken);
   await apiClient.getUsers();
 
   console.log('\n✅ Factory pattern is working!');
 }
 
-main().catch(console.error);
+await main();
 
 /*
 Expected Console Output:

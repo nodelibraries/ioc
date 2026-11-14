@@ -1,0 +1,166 @@
+---
+title: Express and HTTP servers
+description: One scope per request, disposed when the response ends. Express middleware plus the same pattern for Fastify, Koa and Hono.
+sidebar:
+  order: 7
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+In a web server, "scoped" means "per request": the request's database transaction, the current user, a unit of work.
+Create a scope when the request arrives, resolve from it in handlers, and dispose it when the response is done. This is
+what ASP.NET Core does for you; in Node it is one middleware.
+
+## The services
+
+```ts twoslash title="services.ts"
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+
+declare const process: { env: Record<string, string | undefined> };
+declare function connect(url: string): Promise<{ query<T>(sql: string, args?: unknown[]): Promise<T[]>; close(): Promise<void> }>;
+// ---cut---
+export interface User {
+  id: number;
+  name: string;
+}
+
+export const DbUrl = createToken<string>('DbUrl');
+
+export class Db {
+  constructor(private readonly conn: Awaited<ReturnType<typeof connect>>) {}
+  query<T>(sql: string, args?: unknown[]) {
+    return this.conn.query<T>(sql, args);
+  }
+  async onDestroy() {
+    await this.conn.close(); // runs when the provider is disposed at shutdown
+  }
+}
+
+export class RequestContext {
+  userId?: number;
+}
+
+export class UserRepository {
+  constructor(private readonly db: Db) {}
+  findAll() {
+    return this.db.query<User>('select id, name from users');
+  }
+}
+
+export class UserService {
+  constructor(private readonly users: UserRepository, private readonly ctx: RequestContext) {}
+  list() {
+    return this.users.findAll();
+  }
+}
+
+export const services = new ServiceCollection()
+  .addValue(DbUrl, process.env.DATABASE_URL ?? 'postgres://localhost/app')
+  .addSingleton(Db, async (p) => new Db(await connect(await p.getRequiredService(DbUrl))))
+  .addScoped(RequestContext)
+  .addScoped(UserRepository, [Db])
+  .addScoped(UserService, [UserRepository, RequestContext]);
+```
+
+## The request scope middleware
+
+```ts title="app.ts"
+import express from 'express';
+import type { ServiceProvider } from '@nodelibraries/ioc';
+import { services, UserService, RequestContext } from './services.ts';
+
+declare global {
+  namespace Express {
+    interface Request {
+      scope: ServiceProvider;
+    }
+  }
+}
+
+const provider = services.buildServiceProvider({ validateScopes: true, validateOnBuild: true });
+const app = express();
+
+app.use((req, res, next) => {
+  const scope = provider.createScope();
+  req.scope = scope;
+  let disposed = false;
+  const dispose = () => {
+    if (disposed) return;
+    disposed = true;
+    scope.dispose().catch((err) => console.error('scope dispose failed', err));
+  };
+  res.on('finish', dispose); // response sent
+  res.on('close', dispose); // client went away
+  next();
+});
+
+app.use(async (req, _res, next) => {
+  const ctx = await req.scope.getRequiredService(RequestContext);
+  ctx.userId = Number(req.header('x-user-id')) || undefined;
+  next();
+});
+
+app.get('/users', async (req, res, next) => {
+  try {
+    const users = await req.scope.getRequiredService(UserService);
+    res.json(await users.list());
+  } catch (err) {
+    next(err);
+  }
+});
+
+const server = app.listen(3000);
+
+process.on('SIGTERM', () => {
+  server.close(async () => {
+    await provider.dispose(); // closes Db and other singletons
+  });
+});
+```
+
+Every service resolved through `req.scope` within one request shares the same `RequestContext` and `UserRepository`.
+The next request gets new ones. `scope.dispose()` is idempotent, so listening to both `finish` and `close` is safe.
+
+<Aside type="tip">
+Turn on `validateScopes` in development. Resolving `UserService` straight from `provider` (not `req.scope`) then throws
+a `ScopeError` instead of quietly sharing one request's state with every request. See [Validation](/concepts/validation/).
+</Aside>
+
+## Fastify, Koa and Hono
+
+The pattern is the same everywhere: create on request, dispose when the response is done.
+
+```ts title="fastify.ts"
+app.decorateRequest('scope', null);
+app.addHook('onRequest', async (req) => {
+  req.scope = provider.createScope();
+});
+app.addHook('onResponse', async (req) => {
+  await req.scope.dispose();
+});
+```
+
+```ts title="koa.ts"
+app.use(async (ctx, next) => {
+  await using scope = provider.createScope(); // disposed when the middleware chain returns
+  ctx.state.scope = scope;
+  await next();
+});
+```
+
+```ts title="hono.ts"
+app.use(async (c, next) => {
+  await using scope = provider.createScope();
+  c.set('scope', scope);
+  await next();
+});
+```
+
+Koa and Hono run the rest of the chain inside `await next()`, so `await using` disposes the scope after the handler
+finishes. In Express the handler doesn't await anything you can wrap, so use the response events.
+
+## Related
+
+- [Scopes](/concepts/scopes/)
+- [Lifecycle hooks and disposal](/concepts/lifecycle/)
+- [Testing](/guides/testing/)

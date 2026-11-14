@@ -1,0 +1,150 @@
+---
+title: Testing
+description: Swap real services for fakes with replace, build a fresh provider per test, dispose it afterwards, and check the wiring with validateOnBuild.
+sidebar:
+  order: 8
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+Classes that take their dependencies through the constructor are easy to test without any container: `new
+UserService(fakeRepo)`. The container earns its place in tests at two levels: integration tests that use the real
+wiring with a few pieces swapped, and one test that checks the wiring itself.
+
+## Put the registrations in a function
+
+Tests need the same registrations as the app. Keep them in a function that fills a collection:
+
+```ts twoslash title="services.ts"
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+
+export interface Mailer {
+  send(to: string, body: string): Promise<void>;
+}
+export const Mailer = createToken<Mailer>('Mailer');
+
+export class SmtpMailer implements Mailer {
+  async send(to: string, body: string) {
+    /* talks to a real SMTP server */
+  }
+}
+
+export class SignupService {
+  constructor(private readonly mailer: Mailer) {}
+  async signup(email: string) {
+    await this.mailer.send(email, 'Welcome!');
+  }
+}
+
+export function addAppServices(services = new ServiceCollection()) {
+  return services.addSingleton(Mailer, SmtpMailer).addScoped(SignupService, [Mailer]);
+}
+```
+
+## Swap in fakes with replace
+
+`replace` keeps the lifetime of the registration it replaces, so the test changes what is built, not how long it lives.
+Build a new provider in every test and dispose it afterwards:
+
+```ts twoslash title="signup.test.ts"
+import { ServiceCollection, createToken, type ServiceProvider } from '@nodelibraries/ioc';
+interface Mailer {
+  send(to: string, body: string): Promise<void>;
+}
+const Mailer = createToken<Mailer>('Mailer');
+class SignupService {
+  constructor(private readonly mailer: Mailer) {}
+  async signup(email: string) {
+    await this.mailer.send(email, 'Welcome!');
+  }
+}
+declare function addAppServices(services?: ServiceCollection): ServiceCollection;
+declare function beforeEach(fn: () => void): void;
+declare function afterEach(fn: () => Promise<void>): void;
+declare function it(name: string, fn: () => Promise<void>): void;
+declare function expect<T>(value: T): { toEqual(expected: unknown): void };
+// ---cut---
+class FakeMailer implements Mailer {
+  sent: Array<{ to: string; body: string }> = [];
+  async send(to: string, body: string) {
+    this.sent.push({ to, body });
+  }
+}
+
+let provider: ServiceProvider;
+let mailer: FakeMailer;
+
+beforeEach(() => {
+  mailer = new FakeMailer();
+  provider = addAppServices().replace(Mailer, () => mailer).buildServiceProvider({ validateScopes: true });
+});
+
+afterEach(async () => {
+  await provider.dispose(); // runs onDestroy of everything the test created
+});
+
+it('sends a welcome mail', async () => {
+  await using scope = provider.createScope();
+  const signup = await scope.getRequiredService(SignupService);
+
+  await signup.signup('ada@example.com');
+
+  expect(mailer.sent).toEqual([{ to: 'ada@example.com', body: 'Welcome!' }]);
+});
+```
+
+- A factory `() => mailer` hands out the test's own instance, so the test can inspect it. `addValue(Mailer, mailer)`
+  works too, but `replace` keeps the original lifetime and `remove` + `addValue` reads as more than it is.
+- A fresh provider per test means no singleton leaks state from one test into the next.
+- `buildServiceProvider` copies the registrations, so changing the collection in one test can't affect a provider built
+  in another.
+
+## A wiring test
+
+One test that builds the real collection with every check on catches missing registrations, wrong dependency counts and
+captive scoped services before they reach a running app:
+
+```ts twoslash title="wiring.test.ts"
+import { ServiceCollection } from '@nodelibraries/ioc';
+declare function addAppServices(services?: ServiceCollection): ServiceCollection;
+declare function it(name: string, fn: () => void): void;
+declare function expect<T>(value: T): { toEqual(expected: unknown): void; not: { toThrow(): void } };
+// ---cut---
+it('every service can be built', () => {
+  const services = addAppServices();
+  expect(() => services.buildServiceProvider({ validateOnBuild: true, validateScopes: true })).not.toThrow();
+  expect(services.visualizeCircularDependencies()).toEqual('No circular dependencies found.');
+});
+```
+
+When it fails, the `ValidationError` lists every problem at once (`error.errors`), not just the first.
+
+<Aside type="note">
+`validateOnBuild` can't look inside factories. Resolve the services that use factories once in a test to cover them.
+</Aside>
+
+## Asserting on errors
+
+Every container error is a class, so tests can check the type instead of matching messages:
+
+```ts twoslash
+import { ServiceCollection, ServiceNotFoundError } from '@nodelibraries/ioc';
+declare function it(name: string, fn: () => Promise<void>): void;
+declare function expect<T>(value: T): { rejects: { toBeInstanceOf(c: unknown): Promise<void> } };
+class Reports {
+  constructor(readonly clock: { now(): Date }) {}
+}
+// ---cut---
+it('fails clearly when a dependency is missing', async () => {
+  const provider = new ServiceCollection().addSingleton(Reports, ['Clock']).buildServiceProvider();
+  await expect(provider.getRequiredService(Reports)).rejects.toBeInstanceOf(ServiceNotFoundError);
+});
+```
+
+See [Errors](/concepts/errors/) for every error class and its fields.
+
+## Related
+
+- [Service management](/guides/service-management/): `replace`, `remove`, `tryAdd*`
+- [Validation](/concepts/validation/)
+- [Diagnostics](/guides/diagnostics/)

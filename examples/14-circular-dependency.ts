@@ -191,7 +191,7 @@ async function main() {
   await testDetailedCircularDependency();
 }
 
-main().catch(console.error);
+await main();
 
 /*
 Expected Console Output:

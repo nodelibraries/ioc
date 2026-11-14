@@ -1,0 +1,136 @@
+---
+title: JavaScript
+description: Use the container from plain JavaScript, with ESM import or CommonJS require. Same API, no types, dependency arrays still required.
+sidebar:
+  order: 9
+---
+
+import { Aside, Tabs, TabItem } from '@astrojs/starlight/components';
+
+The package ships ESM and CommonJS builds, so it works from plain JavaScript on Node 20 and later. The API is identical;
+you lose the compile-time checks, so the runtime checks matter more.
+
+## Import
+
+<Tabs syncKey="module">
+<TabItem label="ESM">
+
+```js
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+```
+
+</TabItem>
+<TabItem label="CommonJS">
+
+```js
+const { ServiceCollection, createToken } = require('@nodelibraries/ioc');
+```
+
+</TabItem>
+</Tabs>
+
+## A complete example
+
+```js title="app.mjs"
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+
+const Logger = createToken('Logger');
+
+class ConsoleLogger {
+  log(msg) {
+    console.log(`[app] ${msg}`);
+  }
+}
+
+class UserRepository {
+  constructor(logger) {
+    this.logger = logger;
+  }
+  findAll() {
+    this.logger.log('loading users');
+    return ['Ada', 'Grace'];
+  }
+}
+
+class UserService {
+  constructor(repo, logger) {
+    this.repo = repo;
+    this.logger = logger;
+  }
+  list() {
+    return this.repo.findAll();
+  }
+}
+
+const services = new ServiceCollection();
+services.addSingleton(Logger, ConsoleLogger);
+services.addScoped(UserRepository, [Logger]);
+services.addScoped(UserService, [UserRepository, Logger]); // same order as the constructor
+
+const provider = services.buildServiceProvider({ validateScopes: true, validateOnBuild: true });
+
+const scope = provider.createScope();
+const users = await scope.getRequiredService(UserService);
+console.log(users.list());
+await scope.dispose();
+```
+
+## What still gets checked
+
+Without TypeScript, nothing checks that each token matches its constructor parameter. The runtime still checks:
+
+- **The count.** A constructor with more parameters than dependency tokens throws a `RegistrationError` when you
+  register it, naming the class and the counts. (It uses `Function.length`, so parameters with default values and
+  rest parameters don't count.)
+- **Missing registrations.** `validateOnBuild: true` lists every dependency that has no registration when the provider
+  is built; without it, resolving throws a `ServiceNotFoundError` with the path.
+- **Scopes.** `validateScopes: true` throws a `ScopeError` for scoped services resolved from the root or captured by a
+  singleton.
+
+Turn both options on during development. In JavaScript they are your type checker.
+
+## Classes must use `class` syntax
+
+The container tells an implementation from a factory by syntax: only `class` declarations and expressions are
+implementations, called with `new`. Any other function is a factory, called as `factory(provider, key)`.
+
+```js
+function LegacyService() {
+  this.ready = true;
+}
+
+// Treated as a factory: called without `new`, which fails.
+services.addSingleton('legacy', LegacyService);
+
+// Fine: wrap it.
+services.addSingleton('legacy', () => new LegacyService());
+```
+
+<Aside type="caution">
+This also applies to classes compiled to ES5 functions by an old Babel or TypeScript target. Compile to ES2015 or later
+(Node 20 supports every modern target) so classes stay classes.
+</Aside>
+
+Registering a constructor function as its own token (`services.addSingleton(LegacyService)`) does call it with `new`,
+because there is no second argument to interpret. Prefer `class` anyway, so both forms behave the same.
+
+Bound classes are not classes either: `Class.bind(null, …)` returns a plain function, so the container calls it as a
+factory and it throws `Class constructor … cannot be invoked without 'new'`. Pass the class itself and list its
+dependencies, or write an arrow factory.
+
+## Tokens in JavaScript
+
+`createToken('Logger')` works without a type argument; it gives a unique token object with a readable name in errors.
+Strings and symbols work too:
+
+```js
+const Logger = Symbol('Logger');
+services.addSingleton(Logger, ConsoleLogger);
+services.addSingleton('config', () => ({ port: 3000 }));
+```
+
+## Related
+
+- [Registration](/concepts/registration/)
+- [Tokens](/concepts/tokens/)
+- [Validation](/concepts/validation/)

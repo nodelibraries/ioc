@@ -228,7 +228,7 @@ async function main() {
   console.log('\n✅ Value registration is working!');
 }
 
-main().catch(console.error);
+await main();
 
 /*
 Expected Console Output:

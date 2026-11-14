@@ -1,0 +1,104 @@
+---
+title: Why a container?
+description: What dependency injection and inversion of control mean, when a container helps, and how @nodelibraries/ioc differs from other TypeScript containers.
+sidebar:
+  order: 4
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+## Dependency injection in one example
+
+A class that creates its own dependencies is welded to them:
+
+```ts twoslash
+class SmtpMailer {
+  send(to: string, body: string) {}
+}
+// ---cut---
+class SignupService {
+  private mailer = new SmtpMailer(); // which server? which credentials? how do you test it?
+
+  register(email: string) {
+    this.mailer.send(email, 'Welcome!');
+  }
+}
+```
+
+With dependency injection, the class declares what it needs and someone else supplies it:
+
+```ts twoslash
+interface Mailer {
+  send(to: string, body: string): void;
+}
+
+class SignupService {
+  constructor(private readonly mailer: Mailer) {}
+
+  register(email: string) {
+    this.mailer.send(email, 'Welcome!');
+  }
+}
+```
+
+`SignupService` now works with any `Mailer`: SMTP in production, an in-memory fake in tests. That is the whole idea.
+**Inversion of control** is the wider principle: the class no longer controls how its collaborators are built.
+
+## Why a container
+
+You can do DI by hand. In a small app, `main.ts` builds everything:
+
+```ts
+const logger = new ConsoleLogger();
+const db = new Database(config, logger);
+const users = new UserService(new UserRepository(db, logger), logger);
+```
+
+That stops scaling when:
+
+- **The graph grows.** Fifty services, built in the right order, each with the right arguments.
+- **Lifetimes differ.** The pool is one per process, a transaction is one per request, a parser is new every time.
+  Hand-wiring per-request objects means threading them through every call.
+- **Cleanup matters.** Pools, sockets and timers must close in reverse order at shutdown or at the end of a request.
+- **Tests swap pieces.** Replacing one dependency deep in the graph means rebuilding everything above it.
+
+A container takes a description of each service (its token, its lifetime and its dependencies) and does the
+building, sharing and disposing for you. That is what `ServiceCollection` and `ServiceProvider` do.
+
+## Why this one
+
+**No decorators, no metadata.** Dependencies are listed where you register the class, as an array of tokens.
+Your classes don't import the container, carry annotations or need `reflect-metadata`. They are plain classes
+you could construct by hand.
+
+**Dependencies are checked.** Typed tokens in the array are checked against the constructor's parameter types at
+compile time, and the array's length is checked at registration. A missing dependency, or an interface token in the
+wrong place, fails the build or the first line of startup, not a request in production. See [Dependencies](/concepts/dependencies/)
+for what the type check covers.
+
+**The .NET model.** If you know `IServiceCollection`, you know this API: `addSingleton`, `addScoped`,
+`addTransient`, `tryAdd*`, keyed services, `createScope`, `validateScopes`, `validateOnBuild`. Concepts and gotchas
+(captive dependencies, scoped-from-root) carry over. See [Coming from .NET](/migration/dotnet/).
+
+**Typed tokens for interfaces.** `createToken<Logger>('Logger')` carries the type, so resolving it returns a
+`Logger` with no generic argument and no cast.
+
+**Things others leave to you:** [circular dependencies](/concepts/circular-dependencies/) that keep object identity,
+concurrent resolutions that share one singleton, [disposal](/concepts/lifecycle/) through `Symbol.asyncDispose`,
+and [typed errors](/concepts/errors/) that carry the resolution path.
+
+## Compared with other containers
+
+- **InversifyJS** and **tsyringe** are built around decorators (`@injectable()`, `@inject()`), and tsyringe reads
+  constructor parameter types through `reflect-metadata`. That couples service classes to the container and to
+  compiler flags. Here, registration is the only place that knows about the container.
+- **Awilix** avoids decorators and resolves dependencies by name (constructor parameter names or a destructured
+  "cradle" object). That is convenient, but names are not checked by the type system and break under minification.
+  Here, dependencies are explicit tokens, and typed tokens are checked against parameter types.
+- **Hand-written factories** (a `createApp()` function) are a fine choice for small apps. A container adds lifetimes,
+  scopes, disposal order and validation once the graph outgrows one function.
+
+<Aside type="note">
+Every container makes trade-offs. Listing dependencies explicitly costs one array per registration; in return,
+there is no hidden metadata and nothing to configure in the compiler.
+</Aside>

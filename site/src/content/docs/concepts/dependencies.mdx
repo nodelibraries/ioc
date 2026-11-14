@@ -1,0 +1,175 @@
+---
+title: Dependencies
+description: How the dependency array works, how TypeScript checks it against the constructor, and the runtime count check that catches the rest.
+sidebar:
+  order: 3
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+A class gets its dependencies through its constructor. At registration you list a token for each constructor
+parameter, **in the same order**. When the class is resolved, the container resolves each token and passes the
+results as arguments.
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+interface Logger {
+  log(m: string): void;
+}
+const Logger = createToken<Logger>('Logger');
+class Database {}
+// ---cut---
+class OrderService {
+  constructor(
+    private readonly db: Database, // ← Database
+    private readonly logger: Logger, // ← Logger
+  ) {}
+}
+
+new ServiceCollection().addScoped(OrderService, [Database, Logger]);
+```
+
+There are no decorators and no metadata: the array is the whole contract. It is also the only place where a service
+mentions the container, and the class itself stays a plain class you can construct in a test.
+
+## Checked at compile time
+
+The dependency array is typed from the constructor: each position expects a token for the parameter at that
+position. A typed token (`createToken<T>()`) whose type doesn't fit the parameter is rejected, and so is an array
+that is too short:
+
+```ts twoslash
+// @errors: 2769
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+interface Logger {
+  log(m: string): void;
+}
+const Logger = createToken<Logger>('Logger');
+class Database {
+  query(sql: string) {}
+}
+class OrderService {
+  constructor(private readonly db: Database, private readonly logger: Logger) {}
+}
+const services = new ServiceCollection();
+// ---cut---
+services.addScoped(OrderService, [Logger, Database]); // Logger token where a Database goes
+services.addScoped(OrderService, [Database]); // one token short
+```
+
+The check works for every form that takes a class and a dependency array: `add*(Class, deps)`,
+`add*(token, Impl, deps)`, `tryAdd*`, the keyed methods and `replace`. It also checks that the implementation
+fits the token: `addSingleton(Logger, Database)` fails because a `Database` is not a `Logger`.
+
+### Class tokens are checked too
+
+Classes used as dependency tokens are compared with the constructor's parameters like typed tokens are, so
+swapped class tokens are a compile error:
+
+```ts twoslash
+// @errors: 2769
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+class Clock {
+  now() {
+    return Date.now();
+  }
+}
+class Mailer {
+  send(to: string) {}
+}
+class Reports {
+  constructor(readonly clock: Clock, readonly mailer: Mailer) {}
+}
+
+new ServiceCollection().addSingleton(Clock).addSingleton(Mailer).addScoped(Reports, [Mailer, Clock]);
+```
+
+TypeScript also compares types structurally, so two typed tokens whose types have the same shape are interchangeable.
+
+### Writing `<T>` turns the check off
+
+The parameter types are **inferred** from the implementation. If you pass the service type explicitly, the
+remaining type parameter falls back to `any[]` and the array is no longer compared with the constructor:
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+interface Logger {
+  log(m: string): void;
+}
+const Logger = createToken<Logger>('Logger');
+class Database {
+  query(sql: string) {}
+}
+class OrderService {
+  constructor(private readonly db: Database, private readonly logger: Logger) {}
+}
+const services = new ServiceCollection();
+// ---cut---
+// Compiles, and fails at runtime with the wrong arguments.
+services.addScoped<OrderService>(OrderService, [Logger, Database]);
+```
+
+Let TypeScript infer. If a token needs a type, put it on the token (`createToken<Logger>('Logger')`), not on the call.
+Code migrated from `@nodelibraries/ioc`, which needed `addSingleton<ILogger>(...)`, should drop those type
+arguments; see [Migrating](/migration/v1-to-v2/).
+
+## Checked at registration
+
+At runtime the container compares the number of tokens with the constructor's declared parameter count
+(`Function.length`). Too few tokens throw a `RegistrationError` from the `add*` call itself, at startup, instead of
+creating a half-initialised object later:
+
+```ts twoslash
+import { ServiceCollection, RegistrationError } from '@nodelibraries/ioc';
+class Database {}
+class OrderService {
+  constructor(private readonly db: Database) {}
+}
+// ---cut---
+try {
+  // @ts-expect-error -- OrderService needs [Database]
+  new ServiceCollection().addScoped(OrderService);
+} catch (error) {
+  console.log(error instanceof RegistrationError); // true
+  // 'OrderService' has 1 constructor parameter(s) but 0 dependency token(s) were given for 'OrderService'. …
+}
+```
+
+This is the safety net for JavaScript code and for explicit `<T>` calls, where the compiler doesn't help.
+`Function.length` stops at the first parameter with a default value and doesn't count rest parameters, so those
+parameters may be left out of the array.
+
+## Missing registrations
+
+Whether a dependency is **registered** is only known once the collection is complete. By default it is checked when
+the service is resolved, and a missing one throws `ServiceNotFoundError` with the path that needed it
+(`No service registered for 'Logger' (required by OrderService).`). Pass `validateOnBuild: true` to
+`buildServiceProvider` to check every registration up front instead; see [Validation](/concepts/validation/).
+
+## Only `class` syntax is an implementation
+
+The container tells implementations and factories apart by syntax. A function written with `class` is constructed
+with `new` and receives its dependencies. Any other function, an arrow or a `function` declaration, is a
+[factory](/guides/factories/) and is called as `factory(provider, key)`.
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+class Mailer {}
+
+new ServiceCollection()
+  .addSingleton('mailer', Mailer) // class: constructed with new
+  .addSingleton('mailer2', () => new Mailer()); // arrow: called as a factory
+```
+
+<Aside type="caution">
+Pass the class itself. `Class.bind(null, …)` returns a plain function, so it is treated as a factory and fails with
+`Class constructor … cannot be invoked without 'new'`. Old-style constructor functions (`function Mailer() { this.x = 1 }`), or classes compiled down to ES5 functions,
+are treated as factories: they are called without `new`. Compile to ES2015 or later, which every supported Node.js
+version runs.
+</Aside>
+
+Factories take no dependency array: they resolve what they need from the provider they receive. Their dependencies
+are therefore invisible to the compile-time check, to `validateOnBuild` and to the
+[diagnostics](/guides/diagnostics/). Prefer a class with a dependency array where you can.

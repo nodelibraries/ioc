@@ -1,0 +1,148 @@
+---
+title: Factories
+description: Register a function instead of a class when construction needs logic, configuration or async setup. Factories receive the provider and the key.
+sidebar:
+  order: 1
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+A factory is a function that builds the instance. Use one when a constructor call is not enough: the instance comes from
+another library, it needs a value computed at runtime, or it must finish async setup (open a connection, load a file)
+before anyone uses it. The .NET equivalent is `AddSingleton(sp => ...)`.
+
+## Register a factory
+
+Pass a function where an implementation would go. It works with every lifetime and with keyed registrations.
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+
+interface Config {
+  dbUrl: string;
+  poolSize: number;
+}
+const Config = createToken<Config>('Config');
+
+class Database {
+  constructor(readonly url: string, readonly poolSize: number) {}
+}
+
+const services = new ServiceCollection();
+services.addValue(Config, { dbUrl: 'postgres://localhost/app', poolSize: 10 });
+services.addSingleton(Database, async (provider) => {
+  const config = await provider.getRequiredService(Config);
+  return new Database(config.dbUrl, config.poolSize);
+});
+
+const provider = services.buildServiceProvider();
+const db = await provider.getRequiredService(Database);
+```
+
+The signature is `(provider: ServiceProvider, key?: ServiceKey) => T | Promise<T>`. The factory runs once per
+singleton, once per scope for scoped services, and on every resolution for transients, exactly like a class.
+
+## Async initialization
+
+Resolution is always async, so a factory may return a promise. Everyone who resolves the service waits for it, and
+concurrent resolutions of a singleton or scoped service share the same pending promise: the factory runs once.
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+
+declare function connect(url: string): Promise<{ query(sql: string): Promise<unknown[]>; close(): Promise<void> }>;
+// ---cut---
+class Db {
+  constructor(private readonly conn: Awaited<ReturnType<typeof connect>>) {}
+
+  static async open(url: string) {
+    return new Db(await connect(url));
+  }
+  query(sql: string) {
+    return this.conn.query(sql);
+  }
+  async onDestroy() {
+    await this.conn.close();
+  }
+}
+
+const services = new ServiceCollection();
+services.addSingleton(Db, () => Db.open('postgres://localhost/app'));
+
+const provider = services.buildServiceProvider();
+const [a, b] = await Promise.all([provider.getRequiredService(Db), provider.getRequiredService(Db)]);
+// a === b: one connection, opened once
+```
+
+The alternative is `onInit()` on a class registration (see [Lifecycle hooks](/concepts/lifecycle/)). Prefer a factory
+when the instance can't exist before setup finishes; prefer `onInit` when the class is fine to construct and only needs
+warming up.
+
+<Aside type="note">
+`onInit()` runs for **class registrations only**. The container does not call it on what a factory returns: the factory
+already had its chance to initialize. Disposal still applies: if the returned object has `onDestroy()`,
+`[Symbol.asyncDispose]` or `[Symbol.dispose]`, the owning provider calls it.
+</Aside>
+
+## The provider a factory receives
+
+The `provider` argument is not the root provider. It is a view of the provider doing the resolution (the root or a
+scope) that also carries the current resolution chain. Two things follow:
+
+- Scoped services resolved inside a factory come from the right scope.
+- Cycle detection and scope validation see through the factory. A singleton factory that resolves a scoped service
+  fails with a `ScopeError` under `validateScopes`, with the full path in the message:
+
+```text
+ScopeError: Scoped service 'Req' cannot be injected into singleton 'Cache' (Cache → Req): the singleton would keep one scope's instance forever.
+```
+
+Resolve through the `provider` you are given, not through a provider captured from outside: only the given one carries
+the chain, so only it lets cycle detection and scope validation see what the factory resolves. Once the factory
+returns, the view stops carrying the chain and behaves like the provider it came from, so keeping it in the instance
+for later, lazy resolutions is safe.
+
+## Factories for keyed services
+
+A keyed factory receives the key as the second argument, so one function can serve several keys:
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+
+interface Cache {
+  readonly region: string;
+}
+const Cache = createToken<Cache>('Cache');
+
+const services = new ServiceCollection();
+const makeCache = (_: unknown, key?: string | symbol): Cache => ({ region: String(key) });
+services.addKeyedSingleton(Cache, makeCache, 'eu');
+services.addKeyedSingleton(Cache, makeCache, 'us');
+
+const provider = services.buildServiceProvider();
+const eu = await provider.getRequiredKeyedService(Cache, 'eu'); // { region: 'eu' }
+```
+
+See [Keyed services](/guides/keyed-services/).
+
+## Function or class?
+
+The container decides by syntax:
+
+| You pass | Treated as |
+| --- | --- |
+| `class Foo {}` | Implementation: called with `new`, dependencies injected, `onInit` called |
+| `() => ...`, `function () {...}`, `async () => ...` | Factory: called with `(provider, key)` |
+
+Only `class` syntax counts as an implementation. A constructor function written as `function Foo() { this.x = 1 }` (or a
+class transpiled to ES5) passed as the implementation is treated as a factory and called without `new`. Use `class`
+syntax, or wrap it: `(p) => new Foo()`.
+
+Factories have no dependency array: `validateOnBuild` can't see what a factory will resolve, and
+[diagnostics](/guides/diagnostics/) show a factory registration as a leaf.
+
+## Related
+
+- [Registration](/concepts/registration/)
+- [Lifecycle hooks and disposal](/concepts/lifecycle/)
+- [Values and configuration](/guides/values-and-configuration/)

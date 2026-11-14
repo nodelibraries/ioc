@@ -1,0 +1,138 @@
+---
+title: Tokens
+description: How services are identified, classes, abstract classes, typed InjectionTokens, strings and symbols, and which to pick.
+sidebar:
+  order: 2
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+A **token** is the key a service is registered and resolved under. The container keeps registrations in a `Map`, so
+tokens are compared by identity: the same class object, the same `InjectionToken` instance, the same symbol, an equal string.
+
+```ts
+type Token<T> = string | symbol | InjectionToken<T> | AbstractNewable<T>;
+```
+
+| Token | Typed on resolve | Best for |
+|---|---|---|
+| A class | Yes | Concrete services callers depend on directly |
+| An abstract class | Yes | A base type with several implementations |
+| `createToken<T>('Name')` | Yes | Interfaces, values, config, functions |
+| A symbol | Only with `<T>` | Existing code that already uses symbols |
+| A string | Only with `<T>` | Quick scripts, JavaScript projects |
+
+## Classes
+
+A class is its own token. Resolving it returns an instance of that class, with no generic argument.
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+class Clock {
+  now() {
+    return Date.now();
+  }
+}
+
+const provider = new ServiceCollection().addSingleton(Clock).buildServiceProvider();
+const clock = await provider.getRequiredService(Clock); // Clock
+```
+
+## Abstract classes
+
+An abstract class can't be instantiated, but it exists at runtime, so it works as a token for its subclasses.
+It is the closest thing to an interface that survives compilation.
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+abstract class PaymentGateway {
+  abstract charge(cents: number): Promise<string>;
+}
+
+class StripeGateway extends PaymentGateway {
+  async charge(cents: number) {
+    return `ch_${cents}`;
+  }
+}
+
+const provider = new ServiceCollection().addSingleton(PaymentGateway, StripeGateway).buildServiceProvider();
+const gateway = await provider.getRequiredService(PaymentGateway); // PaymentGateway
+```
+
+## Typed tokens: `createToken<T>()`
+
+Interfaces and type aliases vanish at runtime. `createToken<T>(name)` creates an `InjectionToken<T>`: a runtime
+object that carries `T` in its type. Resolving it infers `T`.
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+// ---cut---
+interface Logger {
+  log(message: string): void;
+}
+export const Logger = createToken<Logger>('Logger');
+
+const provider = new ServiceCollection()
+  .addSingleton(Logger, () => ({ log: (m: string) => console.log(m) }))
+  .buildServiceProvider();
+
+const logger = await provider.getRequiredService(Logger);
+//    ^?
+```
+
+The name is only used in error messages and diagnostics. Identity is the object: two `createToken('Logger')` calls
+create two different tokens. Create each token once, export it, and import it wherever it is needed.
+
+Typed tokens also suit values that aren't objects:
+
+```ts twoslash
+import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+// ---cut---
+const ApiUrl = createToken<string>('ApiUrl');
+const Now = createToken<() => Date>('Now');
+
+const provider = new ServiceCollection()
+  .addValue(ApiUrl, 'https://api.example.com')
+  .addValue(Now, () => new Date())
+  .buildServiceProvider();
+
+const url = await provider.getRequiredService(ApiUrl); // string
+```
+
+## Strings and symbols
+
+Strings and symbols carry no type. Resolving one without a type argument gives `unknown`; pass the type explicitly:
+
+```ts twoslash
+import { ServiceCollection } from '@nodelibraries/ioc';
+// ---cut---
+interface Mailer {
+  send(to: string): Promise<void>;
+}
+const MAILER = Symbol('Mailer');
+
+const provider = new ServiceCollection()
+  .addSingleton(MAILER, () => ({ send: async (to: string) => {} }))
+  .addSingleton('mailer', () => ({ send: async (to: string) => {} }))
+  .buildServiceProvider();
+
+const a = await provider.getRequiredService<Mailer>(MAILER); // Mailer
+const b = await provider.getRequiredService<Mailer>('mailer'); // Mailer
+```
+
+Nothing checks that the type you pass matches what was registered. A typo in a string token is only found at
+runtime. Prefer `createToken` in TypeScript code.
+
+<Aside type="tip" title="Type arguments on string tokens">
+With a string or symbol token, pass the type at the call site: `getRequiredService<string>('apiUrl')` is typed
+`string`. It is only as right as what you write each time, so prefer `createToken<string>('ApiUrl')` for anything
+resolved in more than one place.
+</Aside>
+
+## Names in messages
+
+Errors and diagnostics print tokens with `tokenName(token)`: the class name, the `InjectionToken` name,
+the string itself, or `Symbol(description)`. Give symbols a description and tokens a meaningful name; it is what you
+will read in a `ServiceNotFoundError` at 3 a.m.
