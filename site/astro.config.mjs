@@ -18,7 +18,7 @@ export default defineConfig({
   cacheDir: process.env.ASTRO_CACHE_DIR ?? './node_modules/.astro',
   vite: {
     // Interactive components import the library straight from source, so every demo runs the current code.
-    resolve: { alias: [{ find: /^@nodelibraries\/ioc$/, replacement: `${lib}index.ts` }] },
+    resolve: { alias: [{ find: /^@ylcnfrht\/ioc$/, replacement: `${lib}index.ts` }] },
     server: { fs: { allow: ['..'] } },
     // The container's messages and the demos print class names; minification must not rename classes.
     build: { rolldownOptions: { output: { keepNames: true } } },
@@ -28,7 +28,7 @@ export default defineConfig({
   integrations: [
     preact(),
     starlight({
-      title: '@nodelibraries/ioc',
+      title: '@ylcnfrht/ioc',
       description: 'A type-safe IoC container for TypeScript, modeled on .NET ServiceCollection: lifetimes, scopes, keyed services, circular dependencies, typed errors. Zero dependencies.',
       logo: { src: './src/assets/logo.svg' },
       favicon: '/favicon.svg',
@@ -42,8 +42,8 @@ export default defineConfig({
       customCss: ['@fontsource-variable/geist', '@fontsource-variable/geist-mono', './src/styles/theme.css'],
       components: { Header: './src/components/overrides/Header.astro' },
       social: [
-        { icon: 'github', label: 'GitHub', href: 'https://github.com/nodelibraries/ioc' },
-        { icon: 'seti:npm', label: 'npm', href: 'https://www.npmjs.com/package/@nodelibraries/ioc' },
+        { icon: 'github', label: 'GitHub', href: 'https://github.com/ylcnfrht/ioc' },
+        { icon: 'seti:npm', label: 'npm', href: 'https://www.npmjs.com/package/@ylcnfrht/ioc' },
       ],
       lastUpdated: false,
       pagination: true,

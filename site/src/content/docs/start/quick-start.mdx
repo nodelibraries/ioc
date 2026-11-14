@@ -54,7 +54,7 @@ interface Logger {
   log(message: string): void;
 }
 // ---cut---
-import { createToken } from '@nodelibraries/ioc';
+import { createToken } from '@ylcnfrht/ioc';
 
 export const Logger = createToken<Logger>('Logger');
 ```
@@ -65,7 +65,7 @@ More in [Tokens](/concepts/tokens/).
 ## 3. Register and resolve
 
 ```ts twoslash title="container.ts"
-import { createToken } from '@nodelibraries/ioc';
+import { createToken } from '@ylcnfrht/ioc';
 interface Logger {
   log(message: string): void;
 }
@@ -86,7 +86,7 @@ class UserService {
   }
 }
 // ---cut---
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 
 const services = new ServiceCollection()
   .addSingleton(Logger, ConsoleLogger) // token, implementation
@@ -112,7 +112,7 @@ A **scoped** service lives once per scope. In a server, one scope per request gi
 work (a transaction, a request ID) while singletons stay shared.
 
 ```ts twoslash title="server.ts"
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 declare function handle(ctx: RequestContext): Promise<void>;
 // ---cut---
 class RequestContext {
@@ -138,7 +138,7 @@ Turn on validation in development and tests. It catches missing registrations an
 is built, not when a rare code path first runs.
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 // ---cut---
 class Database {
   async query(sql: string): Promise<{ id: number }[]> {

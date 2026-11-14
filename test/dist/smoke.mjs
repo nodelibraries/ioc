@@ -1,6 +1,6 @@
 // Runs against the built package through its own exports map (ESM entry).
 import assert from 'node:assert/strict';
-import { ServiceCollection, createToken, ServiceNotFoundError, IocError } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken, ServiceNotFoundError, IocError } from '@ylcnfrht/ioc';
 
 const Greeting = createToken('Greeting');
 class Greeter {

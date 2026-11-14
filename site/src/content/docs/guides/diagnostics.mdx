@@ -28,7 +28,7 @@ singleton reaching a scoped service) are the ones `validateScopes` would reject.
 ## The dependency tree
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 
 interface Logger {
   log(msg: string): void;
@@ -100,7 +100,7 @@ inspect.
 ## Finding cycles
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 // ---cut---
 class A {
   constructor(readonly b: B) {}
@@ -152,7 +152,7 @@ and the earlier registrations of a token (only reachable through `getServices`) 
 Put the checks in a test so a bad registration fails CI instead of production:
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 declare function addAppServices(services: ServiceCollection): ServiceCollection;
 declare function it(name: string, fn: () => void): void;
 declare function expect<T>(value: T): { toEqual(expected: unknown): void; not: { toThrow(): void } };

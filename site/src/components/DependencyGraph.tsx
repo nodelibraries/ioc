@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'preact/hooks';
-import { ServiceCollection, ServiceLifetime, ValidationError, type ServiceProvider } from '@nodelibraries/ioc';
+import { ServiceCollection, ServiceLifetime, ValidationError, type ServiceProvider } from '@ylcnfrht/ioc';
 import './demo.css';
 import './ioc-demos.css';
 

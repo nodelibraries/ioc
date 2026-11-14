@@ -11,7 +11,7 @@ The container creates your services, so it also cleans them up. Two optional hoo
 life: `onInit` after it is constructed, and `onDestroy` (or a standard dispose method) when its owner is disposed.
 
 ```ts twoslash
-import { ServiceCollection, type LifecycleHooks } from '@nodelibraries/ioc';
+import { ServiceCollection, type LifecycleHooks } from '@ylcnfrht/ioc';
 declare function connect(url: string): Promise<{ end(): Promise<void> }>;
 // ---cut---
 class Database implements LifecycleHooks {
@@ -59,7 +59,7 @@ So classes written for the standard [explicit resource management](https://githu
 protocol work without changes, and a class that has both an `onDestroy` and a `Symbol.dispose` is disposed only once.
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 // ---cut---
 class TempDir {
   async [Symbol.asyncDispose]() {
@@ -88,7 +88,7 @@ Instances are disposed one at a time, awaiting each, in **reverse creation order
 dependencies, so it is disposed before them: a repository closes before the pool it uses, the pool before the logger.
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 // ---cut---
 const log: string[] = [];
 
@@ -145,7 +145,7 @@ Every instance is disposed even if some of them throw. After the last one, the e
 one instance failed, or an `AggregateError` with all of them if several did.
 
 ```ts twoslash
-import { type ServiceProvider } from '@nodelibraries/ioc';
+import { type ServiceProvider } from '@ylcnfrht/ioc';
 declare const provider: ServiceProvider;
 // ---cut---
 try {

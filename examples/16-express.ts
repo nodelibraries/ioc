@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
+import { ServiceCollection, ServiceProvider } from '@ylcnfrht/ioc';
 
 /**
  * Express Integration Example

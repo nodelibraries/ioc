@@ -14,7 +14,7 @@ what ASP.NET Core does for you; in Node it is one middleware.
 ## The services
 
 ```ts twoslash title="services.ts"
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 
 declare const process: { env: Record<string, string | undefined> };
 declare function connect(url: string): Promise<{ query<T>(sql: string, args?: unknown[]): Promise<T[]>; close(): Promise<void> }>;
@@ -66,7 +66,7 @@ export const services = new ServiceCollection()
 
 ```ts title="app.ts"
 import express from 'express';
-import type { ServiceProvider } from '@nodelibraries/ioc';
+import type { ServiceProvider } from '@ylcnfrht/ioc';
 import { services, UserService, RequestContext } from './services.ts';
 
 declare global {

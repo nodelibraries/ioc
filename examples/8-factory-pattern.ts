@@ -1,4 +1,4 @@
-import { ServiceCollection, ServiceProvider, type ServiceFactory } from '@nodelibraries/ioc';
+import { ServiceCollection, ServiceProvider, type ServiceFactory } from '@ylcnfrht/ioc';
 
 /**
  * Factory Pattern Example

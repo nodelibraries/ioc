@@ -1,20 +1,20 @@
 ---
 title: Coming from .NET
-description: How Microsoft.Extensions.DependencyInjection maps to @nodelibraries/ioc, and the differences that come from TypeScript and async resolution.
+description: How Microsoft.Extensions.DependencyInjection maps to @ylcnfrht/ioc, and the differences that come from TypeScript and async resolution.
 sidebar:
   order: 2
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-`@nodelibraries/ioc` is modeled on `Microsoft.Extensions.DependencyInjection`: a `ServiceCollection` you register into, a
+`@ylcnfrht/ioc` is modeled on `Microsoft.Extensions.DependencyInjection`: a `ServiceCollection` you register into, a
 `ServiceProvider` you resolve from, scopes, the same three lifetimes and the same validation options. If you know
 ASP.NET Core's container, you know this one; the differences come from JavaScript having no runtime types and from
 resolution being async.
 
 ## API mapping
 
-| .NET | @nodelibraries/ioc |
+| .NET | @ylcnfrht/ioc |
 | --- | --- |
 | `services.AddSingleton<IFoo, Foo>()` | `services.addSingleton(IFoo, Foo, [deps])` |
 | `services.AddScoped<Foo>()` | `services.addScoped(Foo, [deps])` |
@@ -46,7 +46,7 @@ the list against the constructor, with no decorators or `reflect-metadata`:
 
 ```ts twoslash
 // @errors: 2769
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 interface Clock {
   now(): Date;
 }
@@ -95,4 +95,4 @@ development and tests: it is the check that catches a scoped service captured by
 
 - [Registration](/concepts/registration/)
 - [Lifetimes](/concepts/lifetimes/)
-- [Migrating from @nodelibraries/ioc](/migration/v1-to-v2/)
+- [Migrating from @ylcnfrht/ioc](/migration/v1-to-v2/)

@@ -1,18 +1,18 @@
 ---
 title: Introduction
-description: '@nodelibraries/ioc is a type-safe dependency-injection container for TypeScript, modeled on .NET ServiceCollection and ServiceProvider.'
+description: '@ylcnfrht/ioc is a type-safe dependency-injection container for TypeScript, modeled on .NET ServiceCollection and ServiceProvider.'
 sidebar:
   order: 1
 ---
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-`@nodelibraries/ioc` builds your object graph for you. You register each service once, with a lifetime and the tokens of
+`@ylcnfrht/ioc` builds your object graph for you. You register each service once, with a lifetime and the tokens of
 its dependencies, and ask the container for what you need. It creates instances in the right order, shares them
 according to their lifetime and disposes them when a scope ends.
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 
 interface Logger {
   log(message: string): void;

@@ -27,7 +27,7 @@ type Token<T> = string | symbol | InjectionToken<T> | AbstractNewable<T>;
 A class is its own token. Resolving it returns an instance of that class, with no generic argument.
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 // ---cut---
 class Clock {
   now() {
@@ -45,7 +45,7 @@ An abstract class can't be instantiated, but it exists at runtime, so it works a
 It is the closest thing to an interface that survives compilation.
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 // ---cut---
 abstract class PaymentGateway {
   abstract charge(cents: number): Promise<string>;
@@ -67,7 +67,7 @@ Interfaces and type aliases vanish at runtime. `createToken<T>(name)` creates an
 object that carries `T` in its type. Resolving it infers `T`.
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 // ---cut---
 interface Logger {
   log(message: string): void;
@@ -88,7 +88,7 @@ create two different tokens. Create each token once, export it, and import it wh
 Typed tokens also suit values that aren't objects:
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 // ---cut---
 const ApiUrl = createToken<string>('ApiUrl');
 const Now = createToken<() => Date>('Now');
@@ -106,7 +106,7 @@ const url = await provider.getRequiredService(ApiUrl); // string
 Strings and symbols carry no type. Resolving one without a type argument gives `unknown`; pass the type explicitly:
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 // ---cut---
 interface Mailer {
   send(to: string): Promise<void>;

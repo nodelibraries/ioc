@@ -1,15 +1,16 @@
 ---
 title: Upgrading from 1.x to 2.0
-description: What changed between @nodelibraries/ioc 1.x and 2.0, with a before/after table and a step-by-step checklist.
+description: What changed between @nodelibraries/ioc 1.x and @ylcnfrht/ioc 2.0, with a before/after table and a step-by-step checklist.
 sidebar:
   order: 1
 ---
 
 import { Aside, Steps } from '@astrojs/starlight/components';
 
-2.0 rewrites the resolution engine of `@nodelibraries/ioc` (last 1.x release: 1.3.12). The shape of the API is the same:
+2.0 rewrites the resolution engine and moves the package from `@nodelibraries/ioc` (last 1.x release: 1.3.12) to
+`@ylcnfrht/ioc`. The shape of the API is the same:
 `ServiceCollection`, `ServiceProvider`, the three lifetimes, keyed services, `tryAdd*`, `addValue`, scopes, lifecycle
-hooks and the dependency-tree helpers. Most apps upgrade by bumping the version and fixing what the compiler and the new
+hooks and the dependency-tree helpers. Most apps upgrade by swapping the package and fixing what the compiler and the new
 registration-time checks point out.
 
 <Aside type="caution" title="Register everything before you build">
@@ -23,6 +24,7 @@ or build a new provider.
 
 | Area | 1.x | 2.0 |
 | --- | --- | --- |
+| Package | `@nodelibraries/ioc` | `@ylcnfrht/ioc` |
 | Package format | CommonJS, Node >= 18 | ESM + CJS, Node >= 20 |
 | Interface tokens | `Symbol('ILogger')` + `getRequiredService<ILogger>(token)` | `createToken<ILogger>('ILogger')`, resolved type is inferred |
 | Abstract classes as tokens | Not accepted by the `Token` type | Accepted |
@@ -49,7 +51,7 @@ or build a new provider.
 Before:
 
 ```ts
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 
 const ILogger = Symbol('ILogger');
 const IUserService = Symbol('IUserService');
@@ -81,7 +83,7 @@ class UserService implements IUserService {
   }
 }
 // ---cut---
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 
 const ILogger = createToken<ILogger>('ILogger');
 const IUserService = createToken<IUserService>('IUserService');
@@ -103,7 +105,8 @@ Symbol and string tokens with explicit type arguments still work, so you can mig
 
 <Steps>
 
-1. **Upgrade.** `npm install @nodelibraries/ioc@^2`. The import path does not change.
+1. **Swap the package.** `npm remove @nodelibraries/ioc && npm install @ylcnfrht/ioc`, then replace
+   `'@nodelibraries/ioc'` with `'@ylcnfrht/ioc'` in your imports.
 
 2. **Replace `removeAll(token)` with `remove(token)`.** Note that `remove` now also drops the token's keyed
    registrations.

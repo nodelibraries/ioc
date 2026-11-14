@@ -16,7 +16,7 @@ wiring with a few pieces swapped, and one test that checks the wiring itself.
 Tests need the same registrations as the app. Keep them in a function that fills a collection:
 
 ```ts twoslash title="services.ts"
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 
 export interface Mailer {
   send(to: string, body: string): Promise<void>;
@@ -47,7 +47,7 @@ export function addAppServices(services = new ServiceCollection()) {
 Build a new provider in every test and dispose it afterwards:
 
 ```ts twoslash title="signup.test.ts"
-import { ServiceCollection, createToken, type ServiceProvider } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken, type ServiceProvider } from '@ylcnfrht/ioc';
 interface Mailer {
   send(to: string, body: string): Promise<void>;
 }
@@ -105,7 +105,7 @@ One test that builds the real collection with every check on catches missing reg
 captive scoped services before they reach a running app:
 
 ```ts twoslash title="wiring.test.ts"
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 declare function addAppServices(services?: ServiceCollection): ServiceCollection;
 declare function it(name: string, fn: () => void): void;
 declare function expect<T>(value: T): { toEqual(expected: unknown): void; not: { toThrow(): void } };
@@ -128,7 +128,7 @@ When it fails, the `ValidationError` lists every problem at once (`error.errors`
 Every container error is a class, so tests can check the type instead of matching messages:
 
 ```ts twoslash
-import { ServiceCollection, ServiceNotFoundError } from '@nodelibraries/ioc';
+import { ServiceCollection, ServiceNotFoundError } from '@ylcnfrht/ioc';
 declare function it(name: string, fn: () => Promise<void>): void;
 declare function expect<T>(value: T): { rejects: { toBeInstanceOf(c: unknown): Promise<void> } };
 class Reports {

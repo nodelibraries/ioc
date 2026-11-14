@@ -1,4 +1,4 @@
-import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
+import { ServiceCollection, ServiceProvider } from '@ylcnfrht/ioc';
 
 /**
  * Lifecycle Hooks Example

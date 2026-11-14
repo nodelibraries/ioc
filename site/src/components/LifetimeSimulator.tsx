@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { ServiceCollection, ServiceLifetime, type ServiceProvider } from '@nodelibraries/ioc';
+import { ServiceCollection, ServiceLifetime, type ServiceProvider } from '@ylcnfrht/ioc';
 import './demo.css';
 import './ioc-demos.css';
 

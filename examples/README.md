@@ -1,6 +1,6 @@
 # Examples
 
-This directory contains runnable examples demonstrating various features of `@nodelibraries/ioc`, ordered from basic to advanced.
+This directory contains runnable examples demonstrating various features of `@ylcnfrht/ioc`, ordered from basic to advanced.
 
 ## JavaScript Examples
 

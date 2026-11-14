@@ -12,7 +12,7 @@ Two options of `buildServiceProvider` find wiring mistakes early. Both are off b
 `ValidateScopes` and `ValidateOnBuild` are switched on in development.
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 const services = new ServiceCollection();
 // ---cut---
 const provider = services.buildServiceProvider({
@@ -38,7 +38,7 @@ A scoped service resolved from the root provider is cached on the root and lives
 singleton, holding whatever per-request state it saw first.
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 // ---cut---
 class RequestContext {}
 
@@ -55,7 +55,7 @@ A singleton that depends on a scoped service (directly or through transients) ca
 hands it to every later request. That is a **captive dependency**:
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 // ---cut---
 class DbTransaction {}
 class ReportCache {
@@ -86,7 +86,7 @@ Checks every registration (plain and keyed) when the provider is built and throw
 **every** problem, not just the first. `error.errors` holds them as an array of strings.
 
 ```ts twoslash
-import { ServiceCollection, ValidationError, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, ValidationError, createToken } from '@ylcnfrht/ioc';
 // ---cut---
 interface Mailer {
   send(to: string): Promise<void>;
@@ -133,7 +133,7 @@ A cheap, valuable test: build the real container with both options on. It fails 
 without registering it.
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 declare function registerServices(services: ServiceCollection): void;
 declare function it(name: string, fn: () => void | Promise<void>): void;
 // ---cut---

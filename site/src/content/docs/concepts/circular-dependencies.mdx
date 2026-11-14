@@ -13,7 +13,7 @@ needs `OrderService`. Constructor injection can't satisfy that directly, since e
 finished instance first. The container resolves it anyway, for singleton, scoped and transient services alike.
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 // ---cut---
 class OrderService {
   constructor(private readonly payments: PaymentService) {}
@@ -67,7 +67,7 @@ The proxy can only forward to an instance that exists. Using a cycle partner **i
 partner's own constructor has returned, throws a `CircularDependencyError` with the path:
 
 ```ts twoslash
-import { ServiceCollection, CircularDependencyError } from '@nodelibraries/ioc';
+import { ServiceCollection, CircularDependencyError } from '@ylcnfrht/ioc';
 // ---cut---
 class A {
   constructor(readonly b: B) {}
@@ -114,7 +114,7 @@ registrations to break or create cycles.
 <DependencyGraph client:visible preset="cycle" />
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 class A {
   constructor(b: B) {}
 }

@@ -1,14 +1,14 @@
 /**
  * JavaScript Basic Example
  * 
- * Demonstrates basic usage of @nodelibraries/ioc in JavaScript:
+ * Demonstrates basic usage of @ylcnfrht/ioc in JavaScript:
  * - Service registration
  * - Service resolution
  * - Dependency injection
  * - Scopes
  */
 
-const { ServiceCollection, ServiceProvider, ServiceLifetime } = require('@nodelibraries/ioc');
+const { ServiceCollection, ServiceProvider, ServiceLifetime } = require('@ylcnfrht/ioc');
 
 // Define services
 class Logger {

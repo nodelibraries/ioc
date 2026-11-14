@@ -1,4 +1,4 @@
-// One test per defect found in @nodelibraries/ioc 1.3.x (all reproduced against that version before the rewrite).
+// One test per defect found in @ylcnfrht/ioc 1.3.x (all reproduced against that version before the rewrite).
 import {
   CircularDependencyError,
   createToken,

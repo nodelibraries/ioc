@@ -29,7 +29,7 @@ One instance for the whole application. Every scope gets the same object. Use it
 expensive shared resources: connection pools, HTTP clients, caches, configuration.
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 // ---cut---
 class ConnectionPool {}
 
@@ -48,7 +48,7 @@ One instance per [scope](/concepts/scopes/). In a server, one scope per request 
 the right lifetime for a unit of work, a database transaction, the current user or a request ID.
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 // ---cut---
 class UnitOfWork {}
 
@@ -69,7 +69,7 @@ A new instance every time it is resolved, including once per class that depends 
 stateful helpers that must not be shared: builders, parsers, per-operation state.
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 // ---cut---
 class QueryBuilder {}
 
@@ -94,7 +94,7 @@ singleton is a bug, a **captive dependency**: the singleton keeps the first scop
 are two services. With `getServices`, every implementation gets its own singleton (or its own scoped instance per scope).
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 // ---cut---
 class Handler {}
 const Handlers = createToken<Handler>('Handlers');
@@ -113,7 +113,7 @@ same scope) are in flight at once, for example in `Promise.all` while an async f
 they all wait for the same instance. The service is built once. Transients are always distinct.
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 // ---cut---
 let created = 0;
 

@@ -8,7 +8,7 @@
  */
 
 const express = require('express');
-const { ServiceCollection, ServiceProvider } = require('@nodelibraries/ioc');
+const { ServiceCollection, ServiceProvider } = require('@ylcnfrht/ioc');
 
 // Define services
 class Logger {

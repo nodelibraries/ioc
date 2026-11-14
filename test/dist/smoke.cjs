@@ -1,6 +1,6 @@
 // Runs against the built package through its own exports map (CJS entry).
 const assert = require('node:assert/strict');
-const { ServiceCollection, ServiceLifetime } = require('@nodelibraries/ioc');
+const { ServiceCollection, ServiceLifetime } = require('@ylcnfrht/ioc');
 
 class A { constructor(b) { this.b = b; } }
 class B { constructor(a) { this.a = a; } }

@@ -25,7 +25,7 @@ Errors thrown by your own code (a constructor, a factory, `onInit`, `onDestroy`)
 ## `ServiceNotFoundError`
 
 ```ts twoslash
-import { ServiceCollection, ServiceNotFoundError, createToken, tokenName } from '@nodelibraries/ioc';
+import { ServiceCollection, ServiceNotFoundError, createToken, tokenName } from '@ylcnfrht/ioc';
 // ---cut---
 interface Mailer {
   send(to: string): Promise<void>;
@@ -91,7 +91,7 @@ never throws it: later calls wait for the first disposal.
 Catch `IocError` to separate container problems (wiring bugs, almost always) from errors your services throw:
 
 ```ts twoslash
-import { IocError, type ServiceProvider } from '@nodelibraries/ioc';
+import { IocError, type ServiceProvider } from '@ylcnfrht/ioc';
 declare const scope: ServiceProvider;
 class ReportService {
   async run() {}

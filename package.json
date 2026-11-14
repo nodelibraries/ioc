@@ -1,5 +1,5 @@
 {
-  "name": "@nodelibraries/ioc",
+  "name": "@ylcnfrht/ioc",
   "version": "2.0.0",
   "description": "Type-safe IoC container for TypeScript and Node.js, inspired by .NET's ServiceCollection: singleton, scoped and transient lifetimes, keyed services, lifecycle hooks and circular-dependency support. Zero dependencies.",
   "keywords": [
@@ -24,11 +24,11 @@
   "license": "ISC",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nodelibraries/ioc.git"
+    "url": "git+https://github.com/ylcnfrht/ioc.git"
   },
   "homepage": "https://ioc.ferhatyalcin.dev",
   "bugs": {
-    "url": "https://github.com/nodelibraries/ioc/issues"
+    "url": "https://github.com/ylcnfrht/ioc/issues"
   },
   "author": {
     "name": "ylcnfrht",

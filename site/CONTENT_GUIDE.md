@@ -23,7 +23,7 @@ sidebar:
 ```
 
 ## Code blocks
-- Use ```` ```ts twoslash ```` for TypeScript examples that import `'@nodelibraries/ioc'`: they are TYPE-CHECKED at build time
+- Use ```` ```ts twoslash ```` for TypeScript examples that import `'@ylcnfrht/ioc'`: they are TYPE-CHECKED at build time
   against the real source. A type error fails the build, so examples must compile. Declare external things you use but
   don't define (`declare function sendMail(to: string): Promise<void>;`) and put scaffolding above `// ---cut---` to hide it.
   Top-level `await` and `await using` work.

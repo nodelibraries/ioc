@@ -6,7 +6,7 @@
  * - onDestroy() - called when scope is disposed
  */
 
-const { ServiceCollection, ServiceProvider } = require('@nodelibraries/ioc');
+const { ServiceCollection, ServiceProvider } = require('@ylcnfrht/ioc');
 
 // Define services with lifecycle hooks
 class DatabaseConnection {

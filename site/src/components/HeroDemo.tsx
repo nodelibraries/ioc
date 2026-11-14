@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 import './demo.css';
 import './ioc-demos.css';
 import './HeroDemo.css';
 
 /** The snippet shown next to the output. `run` below executes exactly this, with the real library. */
-export const HERO_CODE = `import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+export const HERO_CODE = `import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 
 interface Logger { log(msg: string): void }
 const Logger = createToken<Logger>('Logger');
@@ -112,7 +112,7 @@ export default function HeroDemo() {
       <pre aria-live="polite">
         <div class="is-dim">$ node app.ts</div>
         {lines.map((l, i) => <div key={i} class={l.tone ? `is-${l.tone}` : undefined}>{l.text}</div>)}
-        {done && <div class="is-dim">exit 0 · real @nodelibraries/ioc, in your browser</div>}
+        {done && <div class="is-dim">exit 0 · real @ylcnfrht/ioc, in your browser</div>}
         <span class="io-hero-caret" aria-hidden="true" />
       </pre>
     </div>

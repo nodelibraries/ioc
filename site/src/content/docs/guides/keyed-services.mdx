@@ -16,7 +16,7 @@ provider, a `Notifier` per channel. They mirror .NET 8's `AddKeyedSingleton` / `
 symbol) and, for classes with constructor parameters, the dependency tokens:
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 
 interface Notifier {
   send(to: string, text: string): Promise<void>;
@@ -66,7 +66,7 @@ need a list, use [multiple implementations](/guides/multiple-implementations/) i
 A keyed registration never answers a plain lookup, and a plain one never answers a keyed lookup:
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 class Cache {}
 // ---cut---
 const services = new ServiceCollection();
@@ -93,7 +93,7 @@ instead: `services.addScoped(Checkout, async (p) => new Checkout(await p.getRequ
 A keyed factory receives `(provider, key)`, so one function can build every variant:
 
 ```ts twoslash
-import { ServiceCollection, createToken, type ServiceKey } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken, type ServiceKey } from '@ylcnfrht/ioc';
 
 interface Gateway {
   readonly name: string;

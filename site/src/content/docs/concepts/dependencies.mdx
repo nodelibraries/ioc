@@ -12,7 +12,7 @@ parameter, **in the same order**. When the class is resolved, the container reso
 results as arguments.
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 interface Logger {
   log(m: string): void;
 }
@@ -40,7 +40,7 @@ that is too short:
 
 ```ts twoslash
 // @errors: 2769
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 interface Logger {
   log(m: string): void;
 }
@@ -68,7 +68,7 @@ swapped class tokens are a compile error:
 
 ```ts twoslash
 // @errors: 2769
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 // ---cut---
 class Clock {
   now() {
@@ -93,7 +93,7 @@ The parameter types are **inferred** from the implementation. If you pass the se
 remaining type parameter falls back to `any[]` and the array is no longer compared with the constructor:
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 interface Logger {
   log(m: string): void;
 }
@@ -111,7 +111,7 @@ services.addScoped<OrderService>(OrderService, [Logger, Database]);
 ```
 
 Let TypeScript infer. If a token needs a type, put it on the token (`createToken<Logger>('Logger')`), not on the call.
-Code migrated from `@nodelibraries/ioc`, which needed `addSingleton<ILogger>(...)`, should drop those type
+Code migrated from `@ylcnfrht/ioc`, which needed `addSingleton<ILogger>(...)`, should drop those type
 arguments; see [Migrating](/migration/v1-to-v2/).
 
 ## Checked at registration
@@ -121,7 +121,7 @@ At runtime the container compares the number of tokens with the constructor's de
 creating a half-initialised object later:
 
 ```ts twoslash
-import { ServiceCollection, RegistrationError } from '@nodelibraries/ioc';
+import { ServiceCollection, RegistrationError } from '@ylcnfrht/ioc';
 class Database {}
 class OrderService {
   constructor(private readonly db: Database) {}
@@ -154,7 +154,7 @@ with `new` and receives its dependencies. Any other function, an arrow or a `fun
 [factory](/guides/factories/) and is called as `factory(provider, key)`.
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 // ---cut---
 class Mailer {}
 

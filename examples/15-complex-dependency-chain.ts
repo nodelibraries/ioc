@@ -1,4 +1,4 @@
-import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
+import { ServiceCollection, ServiceProvider } from '@ylcnfrht/ioc';
 
 /**
  * Complex Dependency Chain Example

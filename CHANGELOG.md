@@ -2,7 +2,7 @@
 
 ## 2.0.0 (2026-11-14)
 
-The resolution engine was rewritten; the registration API keeps its shape. Upgrade guide: https://ioc.ferhatyalcin.dev/migration/v1-to-v2/
+Published as `@ylcnfrht/ioc` (1.x was `@nodelibraries/ioc`, now deprecated). The resolution engine was rewritten; the registration API keeps its shape. Upgrade guide: https://ioc.ferhatyalcin.dev/migration/v1-to-v2/
 
 ### Fixed (defects present in 1.3.x)
 
@@ -140,11 +140,11 @@ The resolution engine was rewritten; the registration API keeps its shape. Upgra
 - Comprehensive documentation
 - GitHub Pages documentation site
 
-[Unreleased]: https://github.com/nodelibraries/ioc/compare/v1.3.11...HEAD
-[1.3.11]: https://github.com/nodelibraries/ioc/compare/v1.3.5...v1.3.11
-[1.3.5]: https://github.com/nodelibraries/ioc/compare/v1.3.4...v1.3.5
-[1.3.4]: https://github.com/nodelibraries/ioc/compare/v1.3.0...v1.3.4
-[1.3.0]: https://github.com/nodelibraries/ioc/compare/v1.2.0...v1.3.0
-[1.2.0]: https://github.com/nodelibraries/ioc/compare/v1.1.0...v1.2.0
-[1.1.0]: https://github.com/nodelibraries/ioc/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/nodelibraries/ioc/releases/tag/v1.0.0
+[Unreleased]: https://github.com/ylcnfrht/ioc/compare/v1.3.11...HEAD
+[1.3.11]: https://github.com/ylcnfrht/ioc/compare/v1.3.5...v1.3.11
+[1.3.5]: https://github.com/ylcnfrht/ioc/compare/v1.3.4...v1.3.5
+[1.3.4]: https://github.com/ylcnfrht/ioc/compare/v1.3.0...v1.3.4
+[1.3.0]: https://github.com/ylcnfrht/ioc/compare/v1.2.0...v1.3.0
+[1.2.0]: https://github.com/ylcnfrht/ioc/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/ylcnfrht/ioc/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/ylcnfrht/ioc/releases/tag/v1.0.0

@@ -16,7 +16,7 @@ before anyone uses it. The .NET equivalent is `AddSingleton(sp => ...)`.
 Pass a function where an implementation would go. It works with every lifetime and with keyed registrations.
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 
 interface Config {
   dbUrl: string;
@@ -48,7 +48,7 @@ Resolution is always async, so a factory may return a promise. Everyone who reso
 concurrent resolutions of a singleton or scoped service share the same pending promise: the factory runs once.
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 
 declare function connect(url: string): Promise<{ query(sql: string): Promise<unknown[]>; close(): Promise<void> }>;
 // ---cut---
@@ -107,7 +107,7 @@ for later, lazy resolutions is safe.
 A keyed factory receives the key as the second argument, so one function can serve several keys:
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 
 interface Cache {
   readonly region: string;

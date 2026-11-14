@@ -24,7 +24,7 @@ libraries register defaults that applications can override, and let tests swap p
 code that sets up defaults, so whoever registers first wins:
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 
 interface Logger {
   log(msg: string): void;
@@ -61,7 +61,7 @@ Keyed registrations don't count: `tryAddSingleton(Logger, ...)` still registers 
 (singleton if there was none). Dependencies are type-checked like `add*`:
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 class Clock {
   now() {
     return new Date();
@@ -85,10 +85,10 @@ Keyed registrations of the token are left alone. To replace a keyed one, registe
 ## remove
 
 `remove(token)` deletes every registration of the token: all plain registrations and all keyed ones. It returns the
-collection, so calls chain. (`removeAll` from `@nodelibraries/ioc` is gone; `remove` does the same.)
+collection, so calls chain. (`removeAll` from `@ylcnfrht/ioc` is gone; `remove` does the same.)
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 class Cache {}
 // ---cut---
 const services = new ServiceCollection();
@@ -106,7 +106,7 @@ services.has(Cache, 'eu'); // false
 provider (or scope) is disposed.
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 const Metrics = createToken<{ inc(name: string): void }>('Metrics');
 const services = new ServiceCollection();
 const provider = services.buildServiceProvider();
@@ -123,7 +123,7 @@ if (provider.isService(Metrics)) {
 build, never one that already exists:
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 class Mailer {}
 // ---cut---
 const services = new ServiceCollection();

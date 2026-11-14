@@ -4,7 +4,7 @@
  * Demonstrates how to detect and visualize circular dependencies
  */
 
-import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
+import { ServiceCollection, ServiceProvider } from '@ylcnfrht/ioc';
 
 // Simple circular dependency: A -> B -> A
 interface IServiceA {

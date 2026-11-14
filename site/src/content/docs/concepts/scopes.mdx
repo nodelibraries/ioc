@@ -12,7 +12,7 @@ Singletons come from the root and are shared; scoped services are created once p
 resolution and owned by the scope that resolved them. It is .NET's `IServiceScope`.
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 // ---cut---
 class RequestContext {
   readonly id = crypto.randomUUID();
@@ -36,7 +36,7 @@ Create a scope where a unit of work starts and dispose it where it ends:
 - **Tests:** one scope per test, so scoped state never leaks between tests.
 
 ```ts twoslash
-import { ServiceCollection, type ServiceProvider } from '@nodelibraries/ioc';
+import { ServiceCollection, type ServiceProvider } from '@ylcnfrht/ioc';
 interface Message {
   id: string;
 }
@@ -62,7 +62,7 @@ the root. Details in [Lifecycle and disposal](/concepts/lifecycle/).
 normally or by an exception. On older setups write it out:
 
 ```ts twoslash
-import { type ServiceProvider } from '@nodelibraries/ioc';
+import { type ServiceProvider } from '@ylcnfrht/ioc';
 declare const provider: ServiceProvider;
 declare function work(scope: ServiceProvider): Promise<void>;
 // ---cut---
@@ -91,7 +91,7 @@ Nothing created for a disposed scope is leaked.
   then the root at shutdown.
 
 ```ts twoslash
-import { type ServiceProvider } from '@nodelibraries/ioc';
+import { type ServiceProvider } from '@ylcnfrht/ioc';
 declare const provider: ServiceProvider;
 declare const server: { close(): Promise<void> };
 declare const process: { once(event: string, fn: () => void): void };

@@ -29,7 +29,7 @@ export default defineEcConfig({
   },
   plugins: [
     ecTwoSlash({
-      // Snippets import '@nodelibraries/ioc'; resolve it to the library's source.
+      // Snippets import '@ylcnfrht/ioc'; resolve it to the library's source.
       twoslashOptions: {
         // expressive-code-twoslash 0.6.1 builds a fresh twoslasher per block; a shared env cache stops the build OOM.
         cache: new Map(),
@@ -42,7 +42,7 @@ export default defineEcConfig({
           allowImportingTsExtensions: true,
           noEmit: true,
           skipLibCheck: true,
-          paths: { '@nodelibraries/ioc': [`${lib}index.ts`] },
+          paths: { '@ylcnfrht/ioc': [`${lib}index.ts`] },
         },
       },
     }),

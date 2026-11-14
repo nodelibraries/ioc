@@ -1,17 +1,17 @@
 <div align="center">
 
-# @nodelibraries/ioc
+# @ylcnfrht/ioc
 
 **Dependency injection that tells you what's wrong before production does.**
 
 A type-safe IoC container for TypeScript and JavaScript, modeled on .NET's `ServiceCollection`:<br>
 singleton, scoped and transient lifetimes, keyed services, lifecycle hooks and circular dependencies. No decorators, no `reflect-metadata`.
 
-[![npm](https://img.shields.io/npm/v/@nodelibraries/ioc?color=a78bfa&label=npm)](https://www.npmjs.com/package/@nodelibraries/ioc)
-[![CI](https://github.com/nodelibraries/ioc/actions/workflows/ci.yml/badge.svg)](https://github.com/nodelibraries/ioc/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/@ylcnfrht/ioc?color=a78bfa&label=npm)](https://www.npmjs.com/package/@ylcnfrht/ioc)
+[![CI](https://github.com/ylcnfrht/ioc/actions/workflows/ci.yml/badge.svg)](https://github.com/ylcnfrht/ioc/actions/workflows/ci.yml)
 [![zero dependencies](https://img.shields.io/badge/dependencies-0-a78bfa)](package.json)
-[![types](https://img.shields.io/npm/types/@nodelibraries/ioc?color=a78bfa)](https://www.npmjs.com/package/@nodelibraries/ioc)
-[![license](https://img.shields.io/npm/l/@nodelibraries/ioc?color=a78bfa)](LICENSE)
+[![types](https://img.shields.io/npm/types/@ylcnfrht/ioc?color=a78bfa)](https://www.npmjs.com/package/@ylcnfrht/ioc)
+[![license](https://img.shields.io/npm/l/@ylcnfrht/ioc?color=a78bfa)](LICENSE)
 [![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-ffdd00?logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/ylcnfrht)
 
 [**Documentation**](https://ioc.ferhatyalcin.dev) · [Quick start](https://ioc.ferhatyalcin.dev/start/quick-start/) · [Playground](https://ioc.ferhatyalcin.dev/playground/)
@@ -21,11 +21,11 @@ singleton, scoped and transient lifetimes, keyed services, lifecycle hooks and c
 ---
 
 ```sh
-npm i @nodelibraries/ioc
+npm i @ylcnfrht/ioc
 ```
 
 ```ts
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 
 interface Logger {
   log(message: string): void;
@@ -53,7 +53,7 @@ users.find(1);
 
 Dependencies are listed explicitly, one token per constructor parameter. TypeScript checks the list against the constructor, so a missing or wrong dependency is a compile error, not a 3 a.m. stack trace.
 
-## Why @nodelibraries/ioc
+## Why @ylcnfrht/ioc
 
 - **The .NET model, in TypeScript.** `addSingleton`, `addScoped`, `addTransient`, `tryAdd*`, keyed services, `createScope`, `getServices`: if you know `Microsoft.Extensions.DependencyInjection`, you already know the API.
 - **Typed end to end.** `createToken<T>()` gives interfaces a typed token; resolving it returns `T` with no generic argument. Implementations, factories and values are checked against the token type, dependency lists against the constructor.
@@ -134,11 +134,11 @@ Every error extends `IocError`:
 
 ## Requirements
 
-Node.js ≥ 20 (or any modern runtime), TypeScript ≥ 5.4 for the typings. Works from plain JavaScript too: `require('@nodelibraries/ioc')` or `import`.
+Node.js ≥ 20 (or any modern runtime), TypeScript ≥ 5.4 for the typings. Works from plain JavaScript too: `require('@ylcnfrht/ioc')` or `import`.
 
 ## Upgrading from 1.x
 
-2.0 rewrites the resolution engine. The API keeps its shape; the differences (keyed services are separate from plain ones, registrations are snapshotted at build, dependency counts are checked at registration, typed errors, reverse-order disposal) are listed in the [upgrade guide](https://ioc.ferhatyalcin.dev/migration/v1-to-v2/).
+1.x was published as `@nodelibraries/ioc`; 2.0 moves to `@ylcnfrht/ioc` (`npm remove @nodelibraries/ioc && npm i @ylcnfrht/ioc`, then update the imports) and rewrites the resolution engine. The API keeps its shape; the differences (keyed services are separate from plain ones, registrations are snapshotted at build, dependency counts are checked at registration, typed errors, reverse-order disposal) are listed in the [upgrade guide](https://ioc.ferhatyalcin.dev/migration/v1-to-v2/).
 
 ## Documentation
 

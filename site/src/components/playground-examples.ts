@@ -1,6 +1,6 @@
 // Starting snippets for the playground. Each runs as-is against the real library.
 export const EXAMPLES: Record<string, string> = {
-  'Basics: tokens, scopes, lifetimes': `import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+  'Basics: tokens, scopes, lifetimes': `import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 
 interface Logger {
   log(message: string): void;
@@ -38,7 +38,7 @@ console.log('same across scopes:', repo === (await other.getRequiredService(User
 await scope.dispose();
 await other.dispose();
 `,
-  'Circular dependencies': `import { ServiceCollection, CircularDependencyError } from '@nodelibraries/ioc';
+  'Circular dependencies': `import { ServiceCollection, CircularDependencyError } from '@ylcnfrht/ioc';
 
 class Orders {
   constructor(public payments: Payments) {}
@@ -79,7 +79,7 @@ try {
   console.log(e.name + ':', e.message);
 }
 `,
-  'Validation and typed errors': `import { ServiceCollection, ValidationError, ScopeError, ServiceNotFoundError } from '@nodelibraries/ioc';
+  'Validation and typed errors': `import { ServiceCollection, ValidationError, ScopeError, ServiceNotFoundError } from '@ylcnfrht/ioc';
 
 class Db {}
 class Session { constructor(public db: Db) {} }
@@ -110,7 +110,7 @@ try {
   if (e instanceof ServiceNotFoundError) console.log('ServiceNotFoundError:', e.message, e.path);
 }
 `,
-  'Lifecycle and disposal order': `import { ServiceCollection } from '@nodelibraries/ioc';
+  'Lifecycle and disposal order': `import { ServiceCollection } from '@ylcnfrht/ioc';
 
 class Db {
   async onInit() { console.log('Db connected'); }
@@ -138,7 +138,7 @@ await scope.dispose();
 console.log('-- dispose root');
 await provider.dispose();
 `,
-  'Keyed and multiple implementations': `import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+  'Keyed and multiple implementations': `import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 
 interface Notifier { send(to: string): string }
 const Notifier = createToken<Notifier>('Notifier');

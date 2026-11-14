@@ -7,7 +7,7 @@
  * - Transient circular dependencies
  */
 
-const { ServiceCollection, ServiceProvider } = require('@nodelibraries/ioc');
+const { ServiceCollection, ServiceProvider } = require('@ylcnfrht/ioc');
 
 // Define services with circular dependencies
 class ServiceA {

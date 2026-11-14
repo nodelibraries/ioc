@@ -4,7 +4,7 @@
  * Demonstrates how to visualize dependency trees for services
  */
 
-import { ServiceCollection, ServiceProvider } from '@nodelibraries/ioc';
+import { ServiceCollection, ServiceProvider } from '@ylcnfrht/ioc';
 
 // Define interfaces
 interface ILogger {

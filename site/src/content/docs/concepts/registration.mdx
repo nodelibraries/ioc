@@ -16,7 +16,7 @@ with **this lifetime**. You fill the collection at startup, then call `buildServ
 `addSingleton`, `addScoped` and `addTransient` accept the same arguments. Only the [lifetime](/concepts/lifetimes/) differs.
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 
 interface Clock {
   now(): Date;
@@ -69,7 +69,7 @@ The second argument is treated as an **implementation** only if it is written wi
 Any other function, arrow or `function`, is a **factory** and is called as `factory(provider, key)`.
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 class Database {
   constructor(readonly url: string) {}
 }
@@ -94,7 +94,7 @@ Values behave like singletons but are never constructed and never [disposed](/co
 didn't create them, so it doesn't own them.
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 // ---cut---
 interface Config {
   port: number;
@@ -114,7 +114,7 @@ Registrations don't overwrite each other: a second `add*` for the same token is 
 Each registration has its own instance, even when two registrations use the same class.
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 interface Notifier {
   send(msg: string): void;
 }
@@ -140,7 +140,7 @@ That is how plugins and handlers are collected; see [Multiple implementations](/
 To register only if nothing is there yet, use `tryAddSingleton` / `tryAddScoped` / `tryAddTransient`:
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 interface Notifier {
   send(msg: string): void;
 }
@@ -163,7 +163,7 @@ Keyed registrations (`addKeyedSingleton` and friends) are a separate namespace: 
 ## Building the provider
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 const services = new ServiceCollection();
 // ---cut---
 const provider = services.buildServiceProvider({

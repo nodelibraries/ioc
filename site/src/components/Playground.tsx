@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
-import * as ioc from '@nodelibraries/ioc';
+import * as ioc from '@ylcnfrht/ioc';
 import { EXAMPLES } from './playground-examples.ts';
 import './demo.css';
 import './ioc-demos.css';
@@ -34,7 +34,7 @@ export function fmt(value: unknown, depth = 0, seen = new Set<unknown>()): strin
   }
 }
 
-/** Strips types and turns `import … from '@nodelibraries/ioc'` into a `require`, so the snippet runs in an async function. */
+/** Strips types and turns `import … from '@ylcnfrht/ioc'` into a `require`, so the snippet runs in an async function. */
 async function compile(source: string): Promise<string> {
   const { transform } = await import('sucrase');
   return transform(source, { transforms: ['typescript', 'imports'], disableESTransforms: true, production: true }).code;
@@ -69,8 +69,8 @@ export default function Playground() {
     };
     const sandboxConsole = { log: push('log'), info: push('log'), debug: push('dim'), warn: push('warn'), error: push('error') };
     const require = (id: string) => {
-      if (id === '@nodelibraries/ioc') return ioc;
-      throw new Error(`Only '@nodelibraries/ioc' can be imported in the playground (got '${id}').`);
+      if (id === '@ylcnfrht/ioc') return ioc;
+      throw new Error(`Only '@ylcnfrht/ioc' can be imported in the playground (got '${id}').`);
     };
     setLines([]);
     const t0 = performance.now();
@@ -161,7 +161,7 @@ export default function Playground() {
         </div>
       </div>
       <p class="io-play-note">
-        Types are stripped, not checked, here (Sucrase). The library itself is the real <code>@nodelibraries/ioc</code> source. <code>await using</code> needs a browser
+        Types are stripped, not checked, here (Sucrase). The library itself is the real <code>@ylcnfrht/ioc</code> source. <code>await using</code> needs a browser
         with explicit resource management (Chrome 134+); elsewhere call <code>await scope.dispose()</code>.
       </p>
     </div>

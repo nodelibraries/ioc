@@ -18,7 +18,7 @@ token is typed without a generic argument:
 ```ts twoslash
 declare const process: { env: Record<string, string | undefined> };
 // ---cut---
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 
 interface AppConfig {
   port: number;
@@ -54,7 +54,7 @@ const config = await provider.getRequiredService(AppConfig);
 Inject a single setting with its own token rather than the whole config object, when a class needs only one value:
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 // ---cut---
 const ApiUrl = createToken<string>('ApiUrl');
 const RetryCount = createToken<number>('RetryCount');
@@ -79,7 +79,7 @@ every call site. A typed token (`createToken<string>('ApiUrl')`) states it once 
 Any value works, including `null` and `undefined`. They are registered values, not missing services:
 
 ```ts twoslash
-import { ServiceCollection, createToken } from '@nodelibraries/ioc';
+import { ServiceCollection, createToken } from '@ylcnfrht/ioc';
 // ---cut---
 const Tracer = createToken<{ span(name: string): void } | null>('Tracer');
 
@@ -101,7 +101,7 @@ The container didn't create a value, so it doesn't own it. Disposing the provide
 value if the container should own the instance:
 
 ```ts twoslash
-import { ServiceCollection } from '@nodelibraries/ioc';
+import { ServiceCollection } from '@ylcnfrht/ioc';
 declare class Pool {
   constructor(url: string);
   end(): Promise<void>;
